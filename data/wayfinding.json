@@ -1,0 +1,296 @@
+{
+ "_about": "Walking graph for indoor turn-by-turn steps. Coordinates use the same local metres as rooms.json. l is the floor level; b is the building (SP Salt Palace, HY Hyatt). Edge texts are the instruction to show when walking a->b (textAB) or b->a (textBA).",
+ "origin": {
+  "lat0": 40.765,
+  "lon0": -111.894,
+  "metersPerDegLat": 111000,
+  "metersPerDegLon": 84300,
+  "formula": "x = (lng - lon0) * metersPerDegLon; y = (lat - lat0) * metersPerDegLat. x is east, y is north, true north. Flat-earth is fine at this scale (< 1 km)."
+ },
+ "magneticDeclination": "About 10 degrees east at Salt Lake City. Compute it at runtime with android.hardware.GeomagneticField and add it to the magnetic heading to get true heading.",
+ "routing": {
+  "algorithm": "Dijkstra over nodes/edges. Edge cost = horizontal distance in metres + 40 per level changed.",
+  "roomAttach": "A room is reached from rooms.json[room].attachNode; its last step is rooms.json[room].finalStep. Starting from a room: begin at that room's attachNode.",
+  "startText": "From an entrance: 'Start at the {entrance.name}.' From a room: 'Start at {room name}, then step out to the {node.name}.'; if the room's finalStep begins with 'You’re there', say 'Start in the {node.name}.' instead.",
+  "lowerConcourseMerge": {
+   "nodes": [
+    "S200",
+    "LCS",
+    "LCM",
+    "NF"
+   ],
+   "rule": "Consecutive same-level legs between these nodes collapse into one step. Heading north: \"Walk north up the Lower Concourse to {where}. Hall DE and the showcase are on your left, the Grand Ballroom on your right.\" Heading south: \"Walk south down the Lower Concourse to {where}. The Grand Ballroom is on your left, Hall DE and the showcase on your right.\"",
+   "where": {
+    "S200": "the 200 South entrance and badge pick-up",
+    "LCS": "the first Grand Ballroom doors",
+    "LCM": "the Solutions Showcase main entrance",
+    "NF": "the North Foyer at the far end"
+   }
+  },
+  "distanceSuffix": "Append \" About N m.\" (rounded to 10) to same-level steps of 40 m or more.",
+  "summary": "Total = polyline length through start, nodes and room. Minutes = max(1, round(total*1.15/75 + |levels changed|*0.6)). Show \"About {round10(total)} m · {min} min · up/down N level(s)\".",
+  "stepKinds": "start, walk, up, down, end; up/down when the leg changes level."
+ },
+ "entrances": {
+  "E200S": {
+   "name": "200 South entrance (badge pick-up)",
+   "node": "S200"
+  },
+  "EWT": {
+   "name": "West Temple entrance at 100 South",
+   "node": "EWT"
+  },
+  "EHY": {
+   "name": "Hyatt lobby",
+   "node": "HYL"
+  },
+  "E200W": {
+   "name": "Secondary Entrance on 200 West",
+   "node": "W200"
+  }
+ },
+ "nodes": {
+  "S200": {
+   "name": "200 South entrance",
+   "x": -92,
+   "y": 45,
+   "level": 1,
+   "building": "SP"
+  },
+  "LCS": {
+   "name": "Lower Concourse",
+   "x": -91,
+   "y": 120,
+   "level": 1,
+   "building": "SP"
+  },
+  "LCM": {
+   "name": "Lower Concourse",
+   "x": -91,
+   "y": 205,
+   "level": 1,
+   "building": "SP"
+  },
+  "NF": {
+   "name": "North Foyer",
+   "x": -70,
+   "y": 228,
+   "level": 1,
+   "building": "SP"
+  },
+  "SH": {
+   "name": "Halls A–C",
+   "x": -125,
+   "y": 215,
+   "level": 1,
+   "building": "SP"
+  },
+  "H1": {
+   "name": "Hall 1 (Alpine Overlook)",
+   "x": -185,
+   "y": 362,
+   "level": 1,
+   "building": "SP"
+  },
+  "H5": {
+   "name": "Hall 5 (Cosmic Canyon)",
+   "x": -400,
+   "y": 345,
+   "level": 1,
+   "building": "SP"
+  },
+  "W200": {
+   "name": "Secondary Entrance on 200 West",
+   "x": -215,
+   "y": 405,
+   "level": 1,
+   "building": "SP"
+  },
+  "UC": {
+   "name": "Upper Concourse",
+   "x": -60,
+   "y": 250,
+   "level": 2,
+   "building": "SP"
+  },
+  "UCN": {
+   "name": "north end of the Upper Concourse",
+   "x": -60,
+   "y": 318,
+   "level": 2,
+   "building": "SP"
+  },
+  "C254": {
+   "name": "corridor by Room 254",
+   "x": -139,
+   "y": 344,
+   "level": 2,
+   "building": "SP"
+  },
+  "UM": {
+   "name": "Upper Mezzanine",
+   "x": -180,
+   "y": 410,
+   "level": 2,
+   "building": "SP"
+  },
+  "EWT": {
+   "name": "West Temple entrance at 100 South",
+   "x": -22,
+   "y": 240,
+   "level": 2,
+   "building": "SP"
+  },
+  "HYL": {
+   "name": "Hyatt lobby",
+   "x": -40,
+   "y": 62,
+   "level": 1,
+   "building": "HY"
+  },
+  "HY2": {
+   "name": "Hyatt Level 2 foyer",
+   "x": -35,
+   "y": 72,
+   "level": 2,
+   "building": "HY"
+  },
+  "HY3": {
+   "name": "Hyatt Level 3 elevator lobby",
+   "x": -30,
+   "y": 42,
+   "level": 3,
+   "building": "HY"
+  },
+  "HY4": {
+   "name": "Regency Foyer (Hyatt Level 4)",
+   "x": -30,
+   "y": 62,
+   "level": 4,
+   "building": "HY"
+  },
+  "HY5": {
+   "name": "Hyatt Level 5 elevator lobby",
+   "x": -28,
+   "y": 60,
+   "level": 5,
+   "building": "HY"
+  }
+ },
+ "edges": [
+  {
+   "a": "S200",
+   "b": "LCS",
+   "textAB": "Walk north up the Lower Concourse, away from the Hyatt connector.",
+   "textBA": "Walk south down the Lower Concourse to the 200 South entrance and badge pick-up."
+  },
+  {
+   "a": "LCS",
+   "b": "LCM",
+   "textAB": "Keep going north. Hall DE is on your left, the Grand Ballroom on your right.",
+   "textBA": "Keep going south. The Grand Ballroom is on your left, Hall DE on your right."
+  },
+  {
+   "a": "LCM",
+   "b": "NF",
+   "textAB": "Keep going north to the North Foyer, where the Grand Ballroom ends.",
+   "textBA": "Walk south out of the North Foyer into the Lower Concourse."
+  },
+  {
+   "a": "NF",
+   "b": "UC",
+   "textAB": "Take the North Foyer escalator up to Level 2. You arrive on the Upper Concourse.",
+   "textBA": "Take the escalator down to the North Foyer on Level 1."
+  },
+  {
+   "a": "LCM",
+   "b": "SH",
+   "textAB": "Turn left through the Solutions Showcase main entrance into Halls A–C.",
+   "textBA": "Leave Halls A–C through the main entrance onto the Lower Concourse."
+  },
+  {
+   "a": "SH",
+   "b": "H1",
+   "textAB": "Walk to the far (north) end of Halls A–C, where the showcase turns left into Hall 1, the Alpine Overlook.",
+   "textBA": "Walk from Hall 1 into Halls A–C and head for the showcase main entrance on the east side."
+  },
+  {
+   "a": "H1",
+   "b": "H5",
+   "textAB": "Keep heading west through Halls 2, 3 and 4 to Hall 5 at the far end.",
+   "textBA": "Head east back through Halls 4, 3 and 2 to Hall 1."
+  },
+  {
+   "a": "H1",
+   "b": "W200",
+   "textAB": "Head to the north side of Hall 1, by the Secondary Entrance and Rooms 155.",
+   "textBA": "From the Secondary Entrance, walk into Hall 1, the Alpine Overlook."
+  },
+  {
+   "a": "W200",
+   "b": "UM",
+   "textAB": "Take the escalator by Rooms 155 up to Level 2. You arrive on the Upper Mezzanine.",
+   "textBA": "Take the escalator by Rooms 255 down to Level 1, by the Secondary Entrance."
+  },
+  {
+   "a": "UC",
+   "b": "UCN",
+   "textAB": "Walk north along the Upper Concourse, past Rooms 250 and 251.",
+   "textBA": "Walk south along the Upper Concourse, past Rooms 251 and 250."
+  },
+  {
+   "a": "UCN",
+   "b": "C254",
+   "textAB": "At the end of the concourse, follow the corridor that bends left.",
+   "textBA": "Follow the corridor back to the Upper Concourse."
+  },
+  {
+   "a": "C254",
+   "b": "UM",
+   "textAB": "Stay on the corridor past Room 254 until it opens onto the Upper Mezzanine.",
+   "textBA": "Leave the Upper Mezzanine at its east end and follow the corridor past Room 254."
+  },
+  {
+   "a": "EWT",
+   "b": "UC",
+   "textAB": "You come in on Level 2 at East Registration (coat check). Walk straight in to the Upper Concourse.",
+   "textBA": "Walk east past East Registration to the West Temple exit."
+  },
+  {
+   "a": "S200",
+   "b": "HYL",
+   "textAB": "Go through the Hyatt connector beside badge pick-up into the Hyatt lobby.",
+   "textBA": "Take the connector from the Hyatt lobby into the Salt Palace. You come out at badge pick-up, at the south end of the Lower Concourse."
+  },
+  {
+   "a": "HYL",
+   "b": "HY2",
+   "textAB": "Take the Hyatt escalator up to Level 2.",
+   "textBA": "Take the Hyatt escalator down to the lobby."
+  },
+  {
+   "a": "HYL",
+   "b": "HY3",
+   "textAB": "Take a Hyatt elevator up to Level 3.",
+   "textBA": "Take a Hyatt elevator down to the lobby."
+  },
+  {
+   "a": "HY2",
+   "b": "HY4",
+   "textAB": "Take the escalator up two more levels to Level 4. You arrive in the Regency Foyer.",
+   "textBA": "Take the escalator down to Level 2."
+  },
+  {
+   "a": "HYL",
+   "b": "HY4",
+   "textAB": "Take the Hyatt escalators or an elevator up to Level 4. You arrive in the Regency Foyer.",
+   "textBA": "Take the escalators or an elevator down to the Hyatt lobby."
+  },
+  {
+   "a": "HY4",
+   "b": "HY5",
+   "textAB": "Take a Hyatt elevator up one level to Level 5.",
+   "textBA": "Take a Hyatt elevator down to Level 4."
+  }
+ ]
+}

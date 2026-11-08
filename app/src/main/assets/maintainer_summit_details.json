@@ -1,0 +1,47 @@
+{
+ "_about": "Descriptions and slide links for Maintainer Summit sessions (keys match schedule.json ids). Already merged into schedule.json; kept for reference.",
+ "m1290687": {
+  "d": "Envoy sits in the request path of much of the internet. A bug that slips through review can become a CVE with a coordinated disclosure, an embargo, and patch releases across supported versions. That math changed when AI-generated pull requests arrived. They look polished, they compile, they pass CI, and they are wrong in ways human contributions rarely are.\n\nThis talk shares the review playbook Envoy maintainers built in response. We cover the failure patterns we see in AI-written changes, how we adjusted reviewer expectations without banning AI outright, the signals that separate a careful contributor using AI from drive-by slop, and how our security team treats these changes in sensitive code paths like parsers and filters.\n\nAttendees leave with a review checklist, contributor policy language they can copy, and real numbers on what this costs maintainer time. Every lesson applies to any project where a bad merge has consequences beyond a revert.",
+  "slides": "https://sessionize.com/download/igtajseq~EZJpdiK4HGDZDtQdibRnpP.pptx~reviewing-ai-generated-prs_when-every-bug-is-a-cve.pptx"
+ },
+ "m1290421": {
+  "d": "After 10 years of Kubernetes, maintainers across the ecosystem still independently answer the same question: is this resource healthy? Every CRD defines status, conditions, and readiness differently, so every tool – Argo CD, Flux, kubectl plugins, dashboards, CI/CD systems – ends up reimplementing health interpretation for the same resources, causing duplicated work, inconsistent behavior, and operational drift.\n\nThis session is a working discussion. Together, we'll explore what a shared specification for CRD health and readiness could look like, building on efforts such as kstatus. We'll discuss how conformance should be achieved: through a shared library, independent implementations against a common specification and conformance suite, or another approach. The goal is to reach consensus on whether this is worth pursuing formally, for example through a CNCF Sandbox project or working group, and who's willing to help drive it.",
+  "slides": "https://sessionize.com/download/ilyacpeg~wPaGkrFHt6C1kBCWPqHa6X.pdf~health-check-hell-maintainer-summit-na-2026-2.pdf"
+ },
+ "m1286718": {
+  "d": "TAGs are where cross-project initiatives, shared practices, and maturity guidance get built, and that work is a collaboration with maintainers rather than something separate from them.\n\nThis panel brings one representative from each of the five TAGs onto one stage to show what each group is working on right now and, concretely, how a maintainer plugs in. This session treats the relationship as a two-way street: how maintainers join initiatives that shape industry-wide practices in their domain, how TAG output such as guidance, assessments, landscape analyses, and best practices helps a project mature as it moves from sandbox to incubating to graduated, and how a problem that several projects share can become a new initiative. Instead of five status updates, we want to share five real collaboration paths.\n\nAttendees leave knowing which initiatives are relevant to their project, how to join or start one, and how TAG expertise feeds the project journey across maturity levels."
+ },
+ "m1290688": {
+  "d": "The AI boom created a distinct operational challenge for open source security. Instead of uncovering hidden zero day exploits, automated scanners frequently flood maintainers with perfectly formatted, technically accurate reports that completely ignore the project threat model.\n\nThis talk provides a realistic look at how the Kubernetes Security Response Committee (SRC) handles the modern vulnerability gold rush. We will explore the heavy triage tax caused by AI submissions and how we counter it using radical pragmatism. Attendees will learn how we partner with HackerOne to enforce strict threat model rubrics, managing waves of duplicate reports without burning out maintainers. We will also detail our internal OPSEC practices, specifically why the SRC relies on simple, local, air gapped LLMs to safely process embargoed vulnerability data."
+ },
+ "m1290321": {
+  "d": "CNCF has a well-established model for source-code stewardship. But once a release is cut, many projects hand critical parts of their relationship with users to infrastructure they do not control.\n\nImages, charts, and other artifacts are published through a patchwork of vendor-operated registries. Once registry addresses appear in manifests, policies, mirrors, and downstream products, changing them becomes an ecosystem-wide operation.\n\nThis talk examines distribution as an overlooked part of open source governance. The distribution channel defines an artifact’s canonical identity, availability, retention, and trust metadata. It also determines whether a project can change providers without disrupting users.\n\nDrawing on our experience as Harbor maintainers, we will give maintainers a framework for deciding which parts of the distribution path must remain under project or foundation control, which can be delegated, and where CNCF may need a shared strategy."
+ },
+ "m1292147": {
+  "d": "AI coding agents are changing how software gets built — but what does that mean for open source maintainers? This talk shares practical lessons from integrating agentic AI into real CNCF project workflows: due diligence evaluation, project health monitoring, adopter interviews, and governance reviews.\n\nWe'll cover three things every maintainer needs to understand: skills (structured, composable units of agent work), evals (how you know an agent's output is correct before it ships), and observability (how you monitor agent behavior the same way you monitor your services).\n\nMaintainers are already dealing with AI-generated PRs, bot-authored commits, and agent-driven reviews. We'll share patterns for integrating agents into your own project workflows: CI/CD, issue triage, release management, documentation, and the eval and observability infrastructure that makes them trustworthy rather than risky.\n\nConcrete examples from both TOC governance workflows and CNCF project adoption patterns."
+ },
+ "m1290737": {
+  "d": "CNCF project reviews are essential for helping open source projects improve quality, sustainability, security, and overall maturity. Yet many community members are interested in contributing to these reviews and do not know where to start.\n\nIn this interactive session, we will explore the CNCF project review assets and discuss how contributors can participate in evaluating and strengthening projects across the cloud native ecosystem. We will cover Governance Reviews, Technical Reviews, General Technical Reviews, and Security Reviews, explaining their purpose, structure, and role in supporting projects through Sandbox, Incubation, and Graduation.\n\nThe session will also gather community feedback on existing documentation and processes, identify opportunities for improvement, and discuss how to make participation more accessible for reviewers and maintainers. Attendees will gain practical insights into one of the key mechanisms that supports CNCF project maturity and ecosystem health."
+ },
+ "m1284587": {
+  "d": "Kubernetes is the second largest open source project in the world, and its future is driven by an elected committee of seven people serving two-year terms. Especially in a project of our size, it’s important to work publicly and in the open, so join us for an open-format interactive session with representatives of the Kubernetes Steering Committee. Bring your questions about project governance, the future of Kubernetes, how you can get involved (or more involved!), or anything else you can think of that we might be able to help you with. A form will be provided to ask questions anonymously."
+ },
+ "m1318472": {
+  "d": "Get your questions answered live by representatives from the Technical Oversight Committee in this open-format session. Come prepared for an engaging and interactive discussion!"
+ },
+ "m1318422": {
+  "d": "SIG-Network Gateway API subproject meeting.\n\nJoin us to discuss the future of Gateway API, next needs, what is going on, how you can help."
+ },
+ "m1318421": {
+  "d": "The Karmada maintainers and contributors will gather for a focused project meeting to discuss upcoming features, roadmap priorities, and community collaboration initiatives.\n\nAgenda: release planning (next major release timeline, feature priorities, breaking changes); architecture discussions (multi-cluster scheduling and workload distribution); community growth (expanding the contributor base and improving documentation); technical challenges in cluster federation and resource propagation; and cross-project collaboration with other CNCF projects."
+ },
+ "m1318423": {
+  "d": "Live SIG-etcd community meeting, at which we will work on etcd 3.8 planning and deliverables, as well as subprojects like benchmarking."
+ },
+ "m1318424": {
+  "d": "This meeting is for OpenTelemetry Maintainers and the Governance and Technical Committees to attend, plan, and discuss OpenTelemetry initiatives, roadmap and community growth."
+ },
+ "m1318426": {
+  "d": "KubeVirt project meeting."
+ }
+}

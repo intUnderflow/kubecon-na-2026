@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose draws everything; this theme only sets the window and splash colours. -->
+    <style name="Theme.Kcna" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/kcna_bg</item>
+        <item name="android:windowSplashScreenBackground">@color/kcna_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

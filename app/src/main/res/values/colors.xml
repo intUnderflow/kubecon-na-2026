@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Window/splash background before Compose draws (matches theme/Color.kt). -->
+    <color name="kcna_bg">#F1F2EE</color>
+    <color name="kcna_you">#C2255B</color>
+    <color name="ic_launcher_background">#C2255B</color>
+</resources>

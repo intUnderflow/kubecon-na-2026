@@ -1,0 +1,258 @@
+{
+ "_about": "Expected values for unit tests. Distances ±3 m and bearings ±2° (flat-earth vs haversine both pass). Routes were produced by the working web version.",
+ "compass": [
+  {
+   "where": "On the 200 South sidewalk outside the main entrance",
+   "lat": 40.76538,
+   "lng": -111.89509,
+   "room": "251AC",
+   "roomLevel": 2,
+   "expectDistanceM": 245,
+   "expectBearingTrueDeg": 4,
+   "myLocationStart": {
+    "mode": "inside",
+    "node": "S200"
+   }
+  },
+  {
+   "where": "Temple Square south gate",
+   "lat": 40.77005,
+   "lng": -111.8917,
+   "room": "251AC",
+   "roomLevel": 2,
+   "expectDistanceM": 383,
+   "expectBearingTrueDeg": 224,
+   "myLocationStart": {
+    "mode": "outside",
+    "entrance": "EWT",
+    "node": "EWT",
+    "distanceM": 386,
+    "bearingDeg": 214
+   }
+  },
+  {
+   "where": "Hyatt lobby",
+   "lat": 40.765558,
+   "lng": -111.894474,
+   "room": "RA",
+   "roomLevel": 4,
+   "expectDistanceM": 19,
+   "expectBearingTrueDeg": 227,
+   "myLocationStart": {
+    "mode": "inside",
+    "node": "HYL"
+   }
+  },
+  {
+   "where": "Grand Ballroom GI doors",
+   "lat": 40.76628,
+   "lng": -111.89505,
+   "room": "PP",
+   "roomLevel": 1,
+   "expectDistanceM": 370,
+   "expectBearingTrueDeg": 304,
+   "myLocationStart": {
+    "mode": "inside",
+    "node": "LCS"
+   }
+  }
+ ],
+ "arrowRotation": [
+  {
+   "trueHeadingDeg": 0,
+   "bearingDeg": 45,
+   "arrowDeg": 45
+  },
+  {
+   "trueHeadingDeg": 90,
+   "bearingDeg": 315,
+   "arrowDeg": 225,
+   "note": "or -135: the room is behind you, to the left"
+  },
+  {
+   "trueHeadingDeg": 350,
+   "bearingDeg": 10,
+   "arrowDeg": 20,
+   "note": "wraps across north without spinning the long way"
+  }
+ ],
+ "trueHeading": "trueHeading = (magneticAzimuth + GeomagneticField.declination + 360) % 360; at SLC the declination is about +10°.",
+ "routes": [
+  {
+   "from": "E200S",
+   "to": "251AC",
+   "steps": [
+    {
+     "kind": "start",
+     "text": "Start at the 200 South entrance (badge pick-up)."
+    },
+    {
+     "kind": "walk",
+     "text": "Walk north up the Lower Concourse to the North Foyer at the far end. Hall DE and the showcase are on your left, the Grand Ballroom on your right. About 180 m."
+    },
+    {
+     "kind": "up",
+     "text": "Take the North Foyer escalator up to Level 2. You arrive on the Upper Concourse."
+    },
+    {
+     "kind": "end",
+     "text": "Walk past Room 250. 251 A–C is the south half of the next room."
+    }
+   ],
+   "totalM": 254,
+   "levelsChanged": 1
+  },
+  {
+   "from": "E200S",
+   "to": "RA",
+   "steps": [
+    {
+     "kind": "start",
+     "text": "Start at the 200 South entrance (badge pick-up)."
+    },
+    {
+     "kind": "walk",
+     "text": "Go through the Hyatt connector beside badge pick-up into the Hyatt lobby. About 50 m."
+    },
+    {
+     "kind": "up",
+     "text": "Take the Hyatt escalators or an elevator up to Level 4. You arrive in the Regency Foyer."
+    },
+    {
+     "kind": "end",
+     "text": "Regency Ballroom A is the south end of the ballroom: on your left as you face the ballroom doors."
+    }
+   ],
+   "totalM": 92,
+   "levelsChanged": 3
+  },
+  {
+   "from": "EWT",
+   "to": "255EF",
+   "steps": [
+    {
+     "kind": "start",
+     "text": "Start at the West Temple entrance at 100 South."
+    },
+    {
+     "kind": "walk",
+     "text": "You come in on Level 2 at East Registration (coat check). Walk straight in to the Upper Concourse."
+    },
+    {
+     "kind": "walk",
+     "text": "Walk north along the Upper Concourse, past Rooms 250 and 251. About 70 m."
+    },
+    {
+     "kind": "walk",
+     "text": "At the end of the concourse, follow the corridor that bends left. About 80 m."
+    },
+    {
+     "kind": "walk",
+     "text": "Stay on the corridor past Room 254 until it opens onto the Upper Mezzanine. About 80 m."
+    },
+    {
+     "kind": "end",
+     "text": "Rooms 255 are at the east end of the Upper Mezzanine. 255 EF is the north-west room."
+    }
+   ],
+   "totalM": 310,
+   "levelsChanged": 0
+  },
+  {
+   "from": "E200W",
+   "to": "PP",
+   "steps": [
+    {
+     "kind": "start",
+     "text": "Start at the Secondary Entrance on 200 West."
+    },
+    {
+     "kind": "walk",
+     "text": "From the Secondary Entrance, walk into Hall 1, the Alpine Overlook. About 50 m."
+    },
+    {
+     "kind": "walk",
+     "text": "Keep heading west through Halls 2, 3 and 4 to Hall 5 at the far end. About 220 m."
+    },
+    {
+     "kind": "end",
+     "text": "The Project Pavilion is in the Cosmic Canyon area of Hall 5."
+    }
+   ],
+   "totalM": 275,
+   "levelsChanged": 0
+  },
+  {
+   "from": "EHY",
+   "to": "SLDE",
+   "steps": [
+    {
+     "kind": "start",
+     "text": "Start at the Hyatt lobby."
+    },
+    {
+     "kind": "up",
+     "text": "Take the Hyatt escalator up to Level 2."
+    },
+    {
+     "kind": "end",
+     "text": "Salt Lake Ballroom DE is the north end of the ballroom, off the west side of the foyer."
+    }
+   ],
+   "totalM": 43,
+   "levelsChanged": 1
+  },
+  {
+   "from": "251AC",
+   "to": "GI",
+   "steps": [
+    {
+     "kind": "start",
+     "text": "Start at 251 A–C, then step out to the Upper Concourse."
+    },
+    {
+     "kind": "down",
+     "text": "Take the escalator down to the North Foyer on Level 1."
+    },
+    {
+     "kind": "walk",
+     "text": "Walk south down the Lower Concourse to the first Grand Ballroom doors. The Grand Ballroom is on your left, Hall DE and the showcase on your right. About 110 m."
+    },
+    {
+     "kind": "end",
+     "text": "Go through the east-side ballroom doors. GI is the south section along the West Temple side."
+    }
+   ],
+   "totalM": 230,
+   "levelsChanged": -1
+  },
+  {
+   "from": "DE",
+   "to": "253A",
+   "steps": [
+    {
+     "kind": "start",
+     "text": "Start at Hall DE, then step out to the Lower Concourse."
+    },
+    {
+     "kind": "walk",
+     "text": "Walk north up the Lower Concourse to the North Foyer at the far end. Hall DE and the showcase are on your left, the Grand Ballroom on your right. About 110 m."
+    },
+    {
+     "kind": "up",
+     "text": "Take the North Foyer escalator up to Level 2. You arrive on the Upper Concourse."
+    },
+    {
+     "kind": "walk",
+     "text": "Walk north along the Upper Concourse, past Rooms 250 and 251. About 70 m."
+    },
+    {
+     "kind": "end",
+     "text": "Room 253 A is here at the north end, next to the Speaker Lounge."
+    }
+   ],
+   "totalM": 269,
+   "levelsChanged": 1
+  }
+ ]
+}

@@ -1,0 +1,207 @@
+{
+ "_about": "Updates for Sun Nov 8, 2026, checked at 2:03 PM MST against the official Maintainer Summit agenda and the GitHub discussions. All 10 unconference slots now have topics.",
+ "howToApply": {
+  "schedule.json": "For each object in sessionUpdates, replace the session with the same id in schedule.json (all fields given). Recompute isMine/hasAnthropicSpeaker at runtime as usual. Each has a new optional field discussionUrl: show it in the details sheet as \"Proposal and replies on GitHub\"."
+ },
+ "sessionUpdates": [
+  {
+   "id": "m1318474",
+   "event": "maintainer-summit",
+   "day": "sun",
+   "start": "2026-11-08T13:35:00-07:00",
+   "end": "2026-11-08T14:10:00-07:00",
+   "endIsEstimate": false,
+   "room": "251AC",
+   "title": "Unconference: Surviving the CVE vulnpocalypse",
+   "speakers": [
+    "Samuel Karp"
+   ],
+   "note": "Unconference",
+   "category": "com",
+   "group": null,
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/features-add-ons/maintainer-summit/?id=1318474",
+   "description": "containerd has had over 100 times more vulnerability reports in 2026 than in any earlier year. How projects are coping, maintainer burnout, and tools or agent skills worth sharing.\n\nPicked from the community votes (37 votes). Projects: Any CNCF project; containerd.",
+   "discussionUrl": "https://github.com/cncf/maintainer-summit/discussions/117"
+  },
+  {
+   "id": "m1318479",
+   "event": "maintainer-summit",
+   "day": "sun",
+   "start": "2026-11-08T14:20:00-07:00",
+   "end": "2026-11-08T15:05:00-07:00",
+   "endIsEstimate": true,
+   "room": "250AC",
+   "title": "Unconference: Evolving Kubernetes for Agentic Workloads: Rethinking the Pod and Node Boundary",
+   "speakers": [
+    "Dawn Chen",
+    "Antonio Ojea"
+   ],
+   "note": "Unconference",
+   "category": "com",
+   "group": null,
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/features-add-ons/maintainer-summit/?id=1318479",
+   "description": "Agent sandboxes sit idle 90%+ of the time, need 500–1,000 per node and sub-second resume. Where the Pod contract breaks, and what Kubernetes should standardize versus leave to runtimes.\n\nPicked from the community votes (38 votes). Projects: Kubernetes, containerd, CRI-O, Kata, gVisor.",
+   "discussionUrl": "https://github.com/cncf/maintainer-summit/discussions/126"
+  },
+  {
+   "id": "m1318476",
+   "event": "maintainer-summit",
+   "day": "sun",
+   "start": "2026-11-08T14:20:00-07:00",
+   "end": "2026-11-08T15:05:00-07:00",
+   "endIsEstimate": true,
+   "room": "250DF",
+   "title": "Unconference: GPU Sandboxes in gVisor: What's Missing and What's Next",
+   "speakers": [
+    "Kevin Klues"
+   ],
+   "note": "Unconference",
+   "category": "com",
+   "group": null,
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/features-add-ons/maintainer-summit/?id=1318476",
+   "description": "Agents now write and run their own CUDA. Gaps in gVisor's GPU support: keeping up with driver releases, MIG and multi-node NVLink, GPU checkpoint/restore, and shared CI.\n\nPicked from the community votes (33 votes). Projects: gVisor.",
+   "discussionUrl": "https://github.com/cncf/maintainer-summit/discussions/119"
+  },
+  {
+   "id": "m1318475",
+   "event": "maintainer-summit",
+   "day": "sun",
+   "start": "2026-11-08T14:20:00-07:00",
+   "end": "2026-11-08T15:05:00-07:00",
+   "endIsEstimate": true,
+   "room": "251AC",
+   "title": "Unconference: Trust & Triage in the AI Era",
+   "speakers": [
+    "Ben Elder",
+    "Maciej Szulik"
+   ],
+   "note": "Unconference",
+   "category": "com",
+   "group": null,
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/features-add-ons/maintainer-summit/?id=1318475",
+   "description": "Keeping trust with users and contributors, finding real contributions in automated noise, and what the contributor ladder means now. Policy changes are in scope.\n\nPicked from the community votes (39 votes). Projects: Kubernetes and any CNCF project.",
+   "discussionUrl": "https://github.com/cncf/maintainer-summit/discussions/122"
+  },
+  {
+   "id": "m1318482",
+   "event": "maintainer-summit",
+   "day": "sun",
+   "start": "2026-11-08T15:05:00-07:00",
+   "end": "2026-11-08T15:40:00-07:00",
+   "endIsEstimate": true,
+   "room": "250AC",
+   "title": "Unconference: Graceful Node Shutdown: what it should mean, and how workload controllers find out",
+   "speakers": [
+    "Daniel Bruno",
+    "Ryan Hallisey",
+    "Filip Křepinský"
+   ],
+   "note": "Unconference",
+   "category": "com",
+   "group": null,
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/features-add-ons/maintainer-summit/?id=1318482",
+   "description": "Settle short-window versus priority-ordered shutdown, publish shutdown state so DaemonSets and drain tooling can react, and draft GA criteria for KEP-2000 and KEP-2712.\n\nPicked from the community votes (17 votes). Projects: SIG Node, SIG Apps, WG Node Lifecycle.",
+   "discussionUrl": "https://github.com/cncf/maintainer-summit/discussions/127"
+  },
+  {
+   "id": "m1318481",
+   "event": "maintainer-summit",
+   "day": "sun",
+   "start": "2026-11-08T15:05:00-07:00",
+   "end": "2026-11-08T15:40:00-07:00",
+   "endIsEstimate": true,
+   "room": "250DF",
+   "title": "Unconference: Replacing DevStats",
+   "speakers": [
+    "Josh Berkus"
+   ],
+   "note": "Unconference",
+   "category": "com",
+   "group": null,
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/features-add-ons/maintainer-summit/?id=1318481",
+   "description": "DevStats data has been unreliable since February. What should replace it (LFX Insights, CHAOSS, something else) and which community metrics matter to you.\n\nPicked from the community votes (7 votes). Projects: All CNCF.",
+   "discussionUrl": "https://github.com/cncf/maintainer-summit/discussions/120"
+  },
+  {
+   "id": "m1318480",
+   "event": "maintainer-summit",
+   "day": "sun",
+   "start": "2026-11-08T15:05:00-07:00",
+   "end": "2026-11-08T15:40:00-07:00",
+   "endIsEstimate": true,
+   "room": "251AC",
+   "title": "Unconference: More PRs, same maintainers. What's helping in the AI era, and what's not?",
+   "speakers": [
+    "Janet Kuo",
+    "Kevin Hannon"
+   ],
+   "note": "Unconference",
+   "category": "com",
+   "group": null,
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/features-add-ons/maintainer-summit/?id=1318480",
+   "description": "Follow-up to the EU session on AI-written PRs: what projects have tried since March (disclosure rules, AI pre-review bots, AGENTS.md, checked-in skills), and how they could tell it helped.\n\nPicked from the community votes (46 votes). Projects: Any CNCF project; agent-sandbox, Kueue, JobSet.",
+   "discussionUrl": "https://github.com/cncf/maintainer-summit/discussions/115"
+  },
+  {
+   "id": "m1318486",
+   "event": "maintainer-summit",
+   "day": "sun",
+   "start": "2026-11-08T16:00:00-07:00",
+   "end": "2026-11-08T16:45:00-07:00",
+   "endIsEstimate": true,
+   "room": "250AC",
+   "title": "Unconference: etcd-operator: from StatefulSets to a custom operator",
+   "speakers": [
+    "Nont Thanonchai",
+    "Maciej Szulik",
+    "Josh Berkus"
+   ],
+   "note": "Unconference",
+   "category": "com",
+   "group": null,
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/features-add-ons/maintainer-summit/?id=1318486",
+   "description": "Why etcd-operator moved off StatefulSet to its own controller, how database operators manage pods across the ecosystem, and StatefulSet improvements on the way.\n\nPicked from the community votes (11 votes). Projects: WG etcd-operator, SIG Apps.",
+   "discussionUrl": "https://github.com/cncf/maintainer-summit/discussions/123"
+  },
+  {
+   "id": "m1318484",
+   "event": "maintainer-summit",
+   "day": "sun",
+   "start": "2026-11-08T16:00:00-07:00",
+   "end": "2026-11-08T16:45:00-07:00",
+   "endIsEstimate": true,
+   "room": "250DF",
+   "title": "Unconference: What standards are we missing for AI on Kubernetes?",
+   "speakers": [
+    "Janet Kuo",
+    "Rita Zhang",
+    "Federico Bongiovanni"
+   ],
+   "note": "Unconference",
+   "category": "com",
+   "group": null,
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/features-add-ons/maintainer-summit/?id=1318484",
+   "description": "AI Conformance now covers 40+ certified platforms. What the platform contract should cover next for inference and agentic workloads, and how to keep it vendor-neutral.\n\nPicked from the community votes (8 votes). Projects: Kubernetes SIGs and CNCF AI projects.",
+   "discussionUrl": "https://github.com/cncf/maintainer-summit/discussions/121"
+  },
+  {
+   "id": "m1318483",
+   "event": "maintainer-summit",
+   "day": "sun",
+   "start": "2026-11-08T16:00:00-07:00",
+   "end": "2026-11-08T16:45:00-07:00",
+   "endIsEstimate": true,
+   "room": "251AC",
+   "title": "Unconference: SCI for OpenTelemetry",
+   "speakers": [
+    "Diana Todea"
+   ],
+   "note": "Unconference",
+   "category": "com",
+   "group": null,
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/features-add-ons/maintainer-summit/?id=1318483",
+   "description": "How Software Carbon Intensity could be expressed in OpenTelemetry semantic conventions, with maintainer feedback before it goes to the SemConv SIG.\n\nPicked from the community votes (15 votes). Projects: OpenTelemetry.",
+   "discussionUrl": "https://github.com/cncf/maintainer-summit/discussions/124"
+  }
+ ]
+}

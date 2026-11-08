@@ -1,0 +1,25 @@
+# Build output and IDE state
+build/
+.gradle/
+.kotlin/
+.idea/
+*.iml
+captures/
+.DS_Store
+
+# Machine-specific
+local.properties
+
+# Signing material: the release keystore and its passwords live outside the repo
+*.jks
+*.keystore
+keystore.properties
+
+# Local working notes and the original web version, kept out of the repo.
+# WebParityTest reads only the generated golden/*.txt, so nothing needs them to build.
+/CONTRACT.md
+/PROMPT.md
+/reference/
+
+# data/updates/ holds day-of update files applied with scripts/apply_updates.py.
+# Strip personal fields (such as youUpvoted) before committing one.

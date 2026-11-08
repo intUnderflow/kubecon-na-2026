@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "updatedAt": "2026-11-08T23:25:53Z",
+  "files": {
+    "colocated.json": {
+      "sha256": "5987602f8ccc700e99585f315e7baac2022c736b311e74e0746b6ea4c70735fd",
+      "bytes": 233496
+    },
+    "colocated_details.json": {
+      "sha256": "a45f599cc94139ecb8fbff5461fb667b7be665a60bce1a879ed578733d23bda6",
+      "bytes": 219260
+    },
+    "details.json": {
+      "sha256": "06e5f2110784234337beaf4a326d340f2d5c7ae0a8f7b36a708a7329e8ac166c",
+      "bytes": 574696
+    },
+    "maintainer_summit_details.json": {
+      "sha256": "1f7dae6b867dc606156f64839e759cfe2f89306cfb5f0a89d5190e1757d6623d",
+      "bytes": 9383
+    },
+    "rooms.json": {
+      "sha256": "fc1d03dbf07ec19a78da632bd2dc7e926e3b5bae90c5e61c4ff5e246b108df2a",
+      "bytes": 19322
+    },
+    "schedule.json": {
+      "sha256": "66835017c77316cf2202f88ea4a51dd6fe42a6009fd70288ec554fa49e161a4e",
+      "bytes": 367515
+    },
+    "venue.json": {
+      "sha256": "6edb67d378ccdaefa1ac726bb6fdfb5c25cabebf9c86ffafd60fb05ac7a264e3",
+      "bytes": 3725
+    },
+    "wayfinding.json": {
+      "sha256": "da327a584842aef257306340845d47ffe1e7da3055989730e2e0bba168c04126",
+      "bytes": 8641
+    }
+  }
+}
