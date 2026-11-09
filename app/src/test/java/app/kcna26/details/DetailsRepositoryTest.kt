@@ -48,7 +48,7 @@ class DetailsRepositoryTest {
     }
 
     // A KubeCon session that details.json lacks.
-    private val missing = "1334784"
+    private val missing = "1302802"
     private val sampleMd = SessionizeSamples.byId.getValue("1289660")
 
     @Test
@@ -248,7 +248,7 @@ class DetailsRepositoryTest {
 
     @Test
     fun onlyPlainNumericIdsAreFetchable() {
-        assertTrue(DetailsRepository.isKubeConId("1334784"))
+        assertTrue(DetailsRepository.isKubeConId("1302802"))
         assertFalse(DetailsRepository.isKubeConId("m1318474"))
         assertFalse(DetailsRepository.isKubeConId(""))
         assertFalse(DetailsRepository.isKubeConId("12/../3"))

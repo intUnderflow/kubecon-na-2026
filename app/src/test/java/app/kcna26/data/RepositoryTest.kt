@@ -80,8 +80,8 @@ class RepositoryTest {
 
     @Test
     fun detailsAndSummitDetails() {
-        assertEquals(558 + 223, repo.details.size) // details.json + colocated_details.json
-        assertEquals(558, repo.details.keys.count { repo.session(it)?.isColocated != true })
+        assertEquals(559 + 223, repo.details.size) // details.json + colocated_details.json
+        assertEquals(559, repo.details.keys.count { repo.session(it)?.isColocated != true })
         val d = repo.details["1203350"]!!
         assertEquals("Vinayak Goyal", d.speakers[0].name)
         assertEquals("Cluster Security @ Anthropic", d.speakers[0].tagline)

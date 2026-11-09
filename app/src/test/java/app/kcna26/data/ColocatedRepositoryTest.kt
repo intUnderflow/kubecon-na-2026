@@ -64,7 +64,7 @@ class ColocatedRepositoryTest {
         assertEquals(setOf("FOY", "LCH4"), repo.extraRooms.keys)
         assertTrue(repo.extraRooms.values.none { it.hasPosition })
         // Details: every co-located session is bundled.
-        assertEquals(558 + 223, repo.details.size)
+        assertEquals(559 + 223, repo.details.size)
         assertTrue(colo.all { it.id in repo.details })
     }
 
@@ -202,7 +202,7 @@ class ColocatedRepositoryTest {
         assertFalse(Repository.COLOCATED_DETAILS in opened)
         assertFalse(Repository.DETAILS in opened)
         assertEquals(614 + 223, r.sessions.size)
-        assertEquals(558 + 223, r.details.size)
+        assertEquals(559 + 223, r.details.size)
         assertTrue(Repository.COLOCATED_DETAILS in opened)
         assertEquals(1, opened.count { it == Repository.COLOCATED })
         // Without it (or unreadable), the co-located sessions still load; they just have no descriptions.
@@ -210,7 +210,7 @@ class ColocatedRepositoryTest {
             val bare = loadWith(TestData.text(Repository.COLOCATED), text)
             assertEquals(614 + 223, bare.sessions.size)
             assertEquals(11, bare.coloEvents.size)
-            assertEquals(558, bare.details.size)
+            assertEquals(559, bare.details.size)
             assertNull(bare.details["1245135"])
         }
     }
@@ -225,7 +225,7 @@ class ColocatedRepositoryTest {
             assertTrue(r.coloEvents.isEmpty())
             assertTrue(r.supersededIds.isEmpty())
             assertTrue(r.extraRooms.isEmpty())
-            assertEquals(558, r.details.size)
+            assertEquals(559, r.details.size)
             assertFalse("Jiazhou Gao" in r.anthropicSpeakers)
             // Monday is as it was before the co-located cards: the All-Access events are back in the
             // "Co-located + off-site" section at the top of the day, not labelled sponsor-hosted.
