@@ -4872,6 +4872,10 @@
 {
 "name": "David Ashpole",
 "tagline": "Google Senior Software Engineer"
+},
+{
+"name": "Stephen Lang",
+"tagline": "Staff Software Engineer at Grafana"
 }
 ]
 },
@@ -6307,6 +6311,19 @@
 {
 "name": "Abhilash Somasamudramath",
 "tagline": "Robotics Product Lead, NVIDIA"
+}
+]
+},
+"1382533": {
+"description": "First KubeCon? Or your fifth? Whether you spent yesterday at a co-located event or you’ve just picked up your badge, the main conference starts now: thousands of people, dozens of tracks, and a schedule that seems to change by the hour. Start your week here.\n\nCNCF Ambassadors Danielle Cook and Simon Forster will give you a quick map of KubeCon. You won’t get this by reading the schedule. We’ll cover how to make connections, where to learn the most and how to make the most of the non-scheduled events. We’ll use personal stories to help illustrate this journey.",
+"speakers": [
+{
+"name": "Simon Forster",
+"tagline": "Principal Architect and CNCF Ambassador"
+},
+{
+"name": "Danielle Cook",
+"tagline": "CNCF Ambassador, Co-Organizer, Cartografos Working Group"
 }
 ]
 }

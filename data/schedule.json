@@ -1,5 +1,5 @@
 {
- "_about": "KubeCon + CloudNativeCon NA 2026 and the CNCF Maintainer Summit (Sun Nov 8), Salt Lake City. Copied from the official agendas on Nov 8, 2026 at 9:20 AM MST. All times are MST (UTC-07:00, zone America/Denver). Registration, coat check, the always-open showcase and poster/kiosk listings are left out on purpose. Updated from data/updates/2026-11-08-sunday.json, checked 2:03 PM MST Nov 8: 10 sessions replaced.",
+ "_about": "KubeCon + CloudNativeCon NA 2026 and the CNCF Maintainer Summit (Sun Nov 8), Salt Lake City. Copied from the official agendas on Nov 8, 2026 at 9:20 AM MST. All times are MST (UTC-07:00, zone America/Denver). Registration, coat check, the always-open showcase and poster/kiosk listings are left out on purpose. Updated from data/updates/2026-11-08-sunday.json, checked 2:03 PM MST Nov 8: 10 sessions replaced. Tue–Thu rechecked against the official agenda on Nov 9, 2026 at 4:10 PM MST.",
  "timeZone": "America/Denver",
  "me": "Lucy Sweet",
  "anthropicSpeakers": [
@@ -2777,16 +2777,17 @@
    "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1371070"
   },
   {
-   "id": "1333734",
+   "id": "1382533",
    "event": "kubecon",
    "day": "tue",
    "start": "2026-11-10T11:02:00-07:00",
    "end": "2026-11-10T11:14:00-07:00",
    "endIsEstimate": false,
    "room": "CC",
-   "title": "KubeSchool - Learn the Easiest Way Possible",
+   "title": "KubeCon + CloudNativeCon Kickoff: Your Map for the Week",
    "speakers": [
-    "Neil Cresswell"
+    "Simon Forster",
+    "Danielle Cook"
    ],
    "note": null,
    "category": "show",
@@ -2796,7 +2797,7 @@
    },
    "isMine": false,
    "hasAnthropicSpeaker": false,
-   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1333734"
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1382533"
   },
   {
    "id": "1361484",
@@ -2818,16 +2819,16 @@
    "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1361484"
   },
   {
-   "id": "1333735",
+   "id": "1333734",
    "event": "kubecon",
    "day": "tue",
    "start": "2026-11-10T11:17:00-07:00",
    "end": "2026-11-10T11:29:00-07:00",
    "endIsEstimate": false,
    "room": "CC",
-   "title": "Cloud Native Operators and You",
+   "title": "KubeSchool - Learn the Easiest Way Possible",
    "speakers": [
-    "Corey McGalliard"
+    "Neil Cresswell"
    ],
    "note": null,
    "category": "show",
@@ -2837,7 +2838,7 @@
    },
    "isMine": false,
    "hasAnthropicSpeaker": false,
-   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1333735"
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1333734"
   },
   {
    "id": "1250350",
@@ -3068,7 +3069,8 @@
    "title": "SIG Instrumentation Introduction and Deep Dive",
    "speakers": [
     "Catherine Fang",
-    "David Ashpole"
+    "David Ashpole",
+    "Stephen Lang"
    ],
    "note": null,
    "category": "mnt",
@@ -3228,17 +3230,16 @@
    "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1364870"
   },
   {
-   "id": "1334784",
+   "id": "1333735",
    "event": "kubecon",
    "day": "tue",
    "start": "2026-11-10T11:32:00-07:00",
    "end": "2026-11-10T11:44:00-07:00",
    "endIsEstimate": false,
    "room": "CC",
-   "title": "Your First Broken Pod: A Beginner's Guide to Debugging Kubernetes",
+   "title": "Cloud Native Operators and You",
    "speakers": [
-    "Tania Duggal",
-    "Anton Weiss"
+    "Corey McGalliard"
    ],
    "note": null,
    "category": "show",
@@ -3248,7 +3249,7 @@
    },
    "isMine": false,
    "hasAnthropicSpeaker": false,
-   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1334784"
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1333735"
   },
   {
    "id": "1378907",
