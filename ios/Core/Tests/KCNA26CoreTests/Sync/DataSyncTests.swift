@@ -11,6 +11,9 @@ import XCTest
 /// the dead process left behind; ``crashAndRelaunch(_:appVersion:)`` is that: `sync`'s process
 /// ends without `onBackground()`, and the next launch's `installCrashGuard()` returns what
 /// Kotlin's `onCrash()` would have.
+///
+/// Timers (the crash guard's probation-end timer) run on the fake clock: ``advance(_:)`` fires
+/// the ones that are due.
 final class DataSyncTests: XCTestCase {
     private typealias JObject = OrderedMap<String, JSONValue>
 
@@ -24,6 +27,8 @@ final class DataSyncTests: XCTestCase {
     private let now = Locked<Int64>(1_000_000)
     private let swapped = Locked<[ActiveData]>([])
     private let logs = Locked<[String]>([])
+    /// Pending timers of the fake clock: (due wall-clock millis, action).
+    private let timers = Locked<[(due: Int64, action: @Sendable () -> Void)]>([])
 
     private static let BASE = "https://example.test/data/"
 
@@ -69,6 +74,7 @@ final class DataSyncTests: XCTestCase {
         let swapped = swapped
         let now = now
         let logs = logs
+        let timers = timers
         return DataSync(
             root: root,
             bundled: { name in try Data(contentsOf: dir.appendingPathComponent(name)) },
@@ -78,11 +84,29 @@ final class DataSyncTests: XCTestCase {
             onSwapped: { a in swapped.withLock { $0.append(a) } },
             nowMillis: { now.value },
             appVersion: appVersion,
-            log: { m in logs.withLock { $0.append(m) } }
+            log: { m in logs.withLock { $0.append(m) } },
+            schedule: { delay, action in
+                let due = now.value + delay
+                timers.withLock { $0.append((due, action)) }
+            }
         )
     }
 
-    private func advance(_ ms: Int64) { now.withLock { $0 += ms } }
+    /// Moves the fake clock on and fires the timers that are due by then, earliest first.
+    private func advance(_ ms: Int64) {
+        let t = now.withLock { n -> Int64 in
+            n += ms
+            return n
+        }
+        while true {
+            let next = timers.withLock { ts -> (@Sendable () -> Void)? in
+                guard let i = ts.indices.filter({ ts[$0].due <= t }).min(by: { ts[$0].due < ts[$1].due }) else { return nil }
+                return ts.remove(at: i).action
+            }
+            guard let next else { break }
+            next()
+        }
+    }
 
     private func bundledFiles(in dir: URL? = nil) -> OrderedMap<String, Data> {
         let d = dir ?? bundledDir
@@ -169,6 +193,10 @@ final class DataSyncTests: XCTestCase {
         return FileManager.default.fileExists(atPath: root.appendingPathComponent(path).path, isDirectory: &isDir) && !isDir.boolValue
     }
 
+    private func markerText() -> String {
+        String(decoding: read(root.appendingPathComponent(DataSync.LAUNCH_MARKER)), as: UTF8.self)
+    }
+
     private func children() -> [String] {
         (try? FileManager.default.contentsOfDirectory(atPath: root.path)) ?? []
     }
@@ -190,7 +218,8 @@ final class DataSyncTests: XCTestCase {
     /// (no `onBackground()`, so its launch marker stays), and the next launch counts it.
     /// Returns that launch and whether it rolled the set back.
     private func crashAndRelaunch(_ sync: DataSync, appVersion: Int = 1) -> (next: DataSync, rolledBack: Bool) {
-        _ = sync // its process ends here
+        _ = sync // its process ends here, and its timers with it
+        timers.value = []
         let next = newSync(appVersion: appVersion)
         return (next, next.installCrashGuard())
     }
@@ -529,12 +558,8 @@ final class DataSyncTests: XCTestCase {
         publish(2, "\"e2\"", ["schedule.json": scheduleWithFirstSession { $0.with("title", .string("Fine")) }])
         let outcome = await check(sync)
         XCTAssertEqual(.updated(2), outcome)
-        // iOS dates a crash by the start of the foreground session it ended (the launch marker's
-        // time), so Kotlin's "crash after probation" is a crash in a session that began after
-        // it: the user leaves, comes back a day later, and the app crashes.
-        sync.onBackground()
-        advance(DataSync.PROBATION_MS + 1)
-        _ = await sync.onForeground()?.value
+        advance(DataSync.PROBATION_MS + 1) // still in the foreground
+        XCTAssertFalse(exists(DataSync.LAUNCH_MARKER)) // iOS: the probation-end timer removed it
         let (restarted, secondRolledBack) = crashAndRelaunch(sync)
         XCTAssertFalse(secondRolledBack)
         _ = try restarted.loadActive()
@@ -596,13 +621,71 @@ final class DataSyncTests: XCTestCase {
         XCTAssertFalse(exists(DataSync.LAUNCH_MARKER))
 
         _ = await sync.onForeground()?.value // back in the foreground with v2 on probation
-        let marker = String(decoding: read(root.appendingPathComponent(DataSync.LAUNCH_MARKER)), as: UTF8.self)
-        XCTAssertEqual("2 \(now.value)", marker)
+        XCTAssertEqual("2 \(now.value) 1", markerText()) // set version, wall-clock millis, app version
 
         sync.onBackground()
         advance(DataSync.PROBATION_MS + 1)
         _ = await sync.onForeground()?.value // probation is over
         XCTAssertFalse(exists(DataSync.LAUNCH_MARKER))
+    }
+
+    func testACrashAfterProbationInALongForegroundSessionIsNotCounted() async throws {
+        let sync = newSync()
+        publish(2, "\"e2\"", ["schedule.json": scheduleWithFirstSession { $0.with("title", .string("Crashy")) }])
+        let outcome = await check(sync)
+        XCTAssertEqual(.updated(2), outcome)
+        advance(60 * 60 * 1000)
+        let (restarted, firstRolledBack) = crashAndRelaunch(sync) // during probation: counted
+        XCTAssertFalse(firstRolledBack)
+        XCTAssertEqual(.github, try restarted.loadActive().source)
+        XCTAssertEqual("2 \(now.value) 1", markerText())
+
+        // The relaunch stays in the foreground for a day (Directions keeps the screen on) and
+        // crashes after probation: like Kotlin's onCrash then, not counted.
+        advance(DataSync.PROBATION_MS)
+        XCTAssertFalse(exists(DataSync.LAUNCH_MARKER))
+        let (next, secondRolledBack) = crashAndRelaunch(restarted)
+        XCTAssertFalse(secondRolledBack)
+        XCTAssertTrue(exists(DataSync.POINTER))
+        XCTAssertEqual(.github, try next.loadActive().source)
+    }
+
+    func testCrashGuardLeavesASetAloneThatComesBackToTheForegroundAfterProbation() async throws {
+        let sync = newSync()
+        publish(2, "\"e2\"", ["schedule.json": scheduleWithFirstSession { $0.with("title", .string("Fine")) }])
+        let outcome = await check(sync)
+        XCTAssertEqual(.updated(2), outcome)
+        // The user leaves, comes back a day later, and the app crashes.
+        sync.onBackground()
+        advance(DataSync.PROBATION_MS + 1)
+        _ = await sync.onForeground()?.value
+        let (restarted, firstRolledBack) = crashAndRelaunch(sync)
+        XCTAssertFalse(firstRolledBack)
+        _ = try restarted.loadActive()
+        XCTAssertFalse(crashAndRelaunch(restarted).rolledBack)
+        XCTAssertTrue(exists(DataSync.POINTER))
+        XCTAssertEqual(.github, try newSync().loadActive().source)
+    }
+
+    func testTheProbationTimerReDatesAMarkerItFindsStillOnProbation() async throws {
+        let sync = newSync()
+        publish(2, "\"e2\"", ["schedule.json": scheduleWithFirstSession { $0.with("title", .string("Fine")) }])
+        let outcome = await check(sync)
+        XCTAssertEqual(.updated(2), outcome)
+        _ = await sync.onForeground()?.value
+        _ = await sync.onForeground()?.value
+        XCTAssertEqual(1, timers.value.count) // one timer for the probation, however often re-armed
+        // The timer fires before probation is over (the wall clock was set back meanwhile): it
+        // re-dates the marker and waits for the new end.
+        let fire = try XCTUnwrap(timers.value.first)
+        timers.value = []
+        now.withLock { $0 = fire.due - 10 }
+        fire.action()
+        XCTAssertEqual("2 \(now.value) 1", markerText())
+        XCTAssertEqual([fire.due], timers.value.map(\.due))
+        advance(10)
+        XCTAssertFalse(exists(DataSync.LAUNCH_MARKER))
+        XCTAssertEqual(0, timers.value.count)
     }
 
     func testTheLaunchCountsThePreviousCrashBeforeAnythingClearsTheMarker() async throws {
@@ -620,6 +703,43 @@ final class DataSyncTests: XCTestCase {
         XCTAssertTrue(next.installCrashGuard()) // the result of the launch's one count
         XCTAssertFalse(exists(DataSync.POINTER))
         XCTAssertEqual(.bundled, try next.loadActive().source)
+    }
+
+    func testARollbackIsRecordedForTheAppVersionThatCrashedNotTheOneThatRelaunches() async throws {
+        // Kotlin's onCrash runs in the crashing process and stores its own version code; iOS
+        // counts the crash at the next launch, which may already be an update (maybe the fix).
+        let v1 = newSync(appVersion: 1)
+        publish(2, "\"e2\"", ["schedule.json": scheduleWithFirstSession { $0.with("title", .string("Crashy in 1")) }])
+        let outcome = await check(v1)
+        XCTAssertEqual(.updated(2), outcome)
+        let (v1Again, firstRolledBack) = crashAndRelaunch(v1, appVersion: 1)
+        XCTAssertFalse(firstRolledBack)
+        XCTAssertEqual(.github, try v1Again.loadActive().source)
+
+        // Build 1 crashes again; the user installs build 2, whose launch counts that crash.
+        let (v2, secondRolledBack) = crashAndRelaunch(v1Again, appVersion: 2)
+        XCTAssertTrue(secondRolledBack)
+        XCTAssertFalse(exists(DataSync.POINTER))
+        XCTAssertEqual(.bundled, try v2.loadActive().source)
+        let updated = await check(v2) // build 1 rolled it back, not build 2
+        XCTAssertEqual(.updated(2), updated)
+    }
+
+    func testALaunchMarkerWithoutAnAppVersionCountsForThisAppVersion() async throws {
+        let sync = newSync(appVersion: 1)
+        publish(2, "\"e2\"", ["schedule.json": scheduleWithFirstSession { $0.with("title", .string("Crashy")) }])
+        let outcome = await check(sync)
+        XCTAssertEqual(.updated(2), outcome)
+        XCTAssertFalse(crashAndRelaunch(sync).rolledBack)
+
+        // The two-field form ("<version> <millis>") that earlier builds wrote.
+        try Data("2 \(now.value)".utf8).write(to: root.appendingPathComponent(DataSync.LAUNCH_MARKER))
+        let next = newSync(appVersion: 1)
+        XCTAssertTrue(next.installCrashGuard())
+        XCTAssertEqual(.bundled, try next.loadActive().source)
+        fetcher.requests = []
+        assertRejected(await check(next), "rolled back") // by this app version
+        XCTAssertEqual([String](), downloads())
     }
 
     func testChecksRunOneAtATime() async throws {

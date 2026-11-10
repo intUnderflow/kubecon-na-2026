@@ -6,14 +6,24 @@ import Foundation
 ///
 /// Screen state (Kotlin `rememberSaveable`; SwiftUI `@SceneStorage` / `@State`): the selected
 /// day (`String?`), the search text, expanded group keys, open co-located event keys
-/// (`coloOpen`), the RSVP'd filter (`goingOnly`) and `unstarred` (reset whenever `goingOnly` or
-/// the day changes). Stars live in `GoingStore`, "me" in `SettingsStore`.
+/// (`coloOpen`), the RSVP'd filter (`goingOnly`) and `unstarred`. `unstarred` is Kotlin
+/// `rememberSaveable(goingOnly, dayKey)`: it starts empty whenever `goingOnly` or the RESOLVED
+/// day (``ScheduleLogic/resolveDayKey(_:_:_:)``, = ``State/dayKey``) changes, not the stored
+/// selection: at midnight a selection that is no longer visible (or none) moves on to the new
+/// today while `selectedDay` stays the same, and that resets it too. Keep it as a
+/// ``SavedUnstarred`` under ``unstarredKey(goingOnly:dayKey:)`` of the resolved day and pass
+/// `saved.ids(for: key)` (ScheduleScreenLogic+UI.swift). Stars live in `GoingStore`, "me" in
+/// `SettingsStore`.
 ///
 /// ```swift
 /// let minute = ScheduleLogic.minuteOf(ticker.now)      // the schedule changes once a minute
+/// let dayKey = ScheduleLogic.resolveDayKey(index.days, minute, selectedDay)   // = st.dayKey
+/// let key = ScheduleScreenLogic.unstarredKey(goingOnly: goingOnly, dayKey: dayKey)
+/// let unstarred = ScheduleScreenLogic.SavedUnstarred.decode(unstarredText).ids(for: key)
 /// let st = ScheduleScreenLogic.state(index, minute, settings.speakingAs, selectedDay: selectedDay,
 ///     query: ScheduleScreenLogic.query(searchText), goingOnly: goingOnly, goingIds: going.ids,
 ///     unstarred: unstarred, remindMinutes: going.remindMinutes)
+/// // .onChange(of: key): save an empty SavedUnstarred under the new key (Compose drops the state).
 /// let layout = ScheduleScreenLogic.listLayout(width, twoPane: twoPane, wideWindow: widthClass.isWide)
 /// let rows = st.rows(layout.coloColumns, coloOpen)
 /// ```
@@ -43,7 +53,7 @@ enum ScheduleScreenLogic {
 
     /// The RSVP'd filter's keep rule (Kotlin `keepGoing`): starred, mine, or unstarred while the
     /// filter is on (stays listed with an outlined star, so a stray tap is undone in place, until
-    /// the filter is toggled or the day changes).
+    /// the filter is toggled or the resolved day changes; see the type's notes on `unstarred`).
     static func keepGoing(_ goingIds: Set<String>, _ me: String?, _ unstarred: Set<String>) -> @Sendable (Session) -> Bool {
         { s in GoingLogic.keeps(s, goingIds, me) || unstarred.contains(s.id) }
     }
@@ -53,7 +63,8 @@ enum ScheduleScreenLogic {
         /// The minute everything was computed at (Kotlin `minute`).
         let minute: Date
         let searching: Bool
-        /// The day shown (``ScheduleLogic/resolveDayKey(_:_:_:)``); nil only without days.
+        /// The day shown (``ScheduleLogic/resolveDayKey(_:_:_:)``); nil only without days. With
+        /// `goingOnly`, the key `unstarred` is remembered under (``unstarredKey(goingOnly:dayKey:)``).
         let dayKey: String?
         let tabs: [DayTab]
         /// Header clock: "9:05 AM MST" / "Times in MST".
@@ -171,7 +182,8 @@ enum ScheduleScreenLogic {
     }
 
     /// Kotlin `onToggleGoing`: after `GoingStore.toggle(id)` returned `nowGoing`, a session
-    /// unstarred while the filter is on stays listed.
+    /// unstarred while the filter is on stays listed (the set of the current
+    /// ``unstarredKey(goingOnly:dayKey:)``: ``SavedUnstarred/afterToggle(_:nowGoing:goingOnly:currentKey:)``).
     static func unstarredAfterToggle(_ unstarred: Set<String>, _ id: String, nowGoing: Bool, goingOnly: Bool) -> Set<String> {
         if !nowGoing && goingOnly {
             var next = unstarred

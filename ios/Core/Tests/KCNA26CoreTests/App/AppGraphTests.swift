@@ -401,6 +401,48 @@ final class AppGraphTests: XCTestCase {
         XCTAssertEqual(.notWanted, stale)
     }
 
+    func testAForegroundReminderReplacesTheSessionsOlderOne() async {
+        // 14:10 (app clock), the app in the foreground: the 10 minute reminder of Lucy's 14:20 talk
+        // fires; the 30 minute one from 13:50 is still in Notification Center. Kotlin posts the 10
+        // minute one under the session's tag, replacing it. (No start(): no reschedule tidies here.)
+        let f = fixture(at: "2026-11-11T14:10:00-07:00", speakingAs: lucy)
+        let g = f.graph
+        let gi = TestData.repo.session("1249844")!
+        f.center.deliver(DeliveredReminder(identifier: "1249844/30", sessionId: "1249844", minutesBefore: 30, date: gi.start.minusMinutes(30)))
+        f.center.deliver(DeliveredReminder(identifier: "1289660/30", sessionId: "1289660", minutesBefore: 30, date: gi.start.minusMinutes(30)))
+        // Not shown: nothing is replaced (Kotlin's receiver posts nothing).
+        g.settings.setSpeakingAs(nil)
+        let dropped = await g.reminderFiring(sessionId: "1249844", minutesBefore: 10)
+        XCTAssertEqual(.notWanted, dropped)
+        await g.reminders.settle()
+        XCTAssertEqual([], f.center.removedDeliveredIds)
+
+        g.settings.setSpeakingAs(lucy)
+        let shown = await g.reminderFiring(sessionId: "1249844", minutesBefore: 10)
+        XCTAssertTrue(shown.shows)
+        await g.reminders.settle()
+        XCTAssertEqual(["1249844/30"], f.center.removedDeliveredIds)
+        XCTAssertEqual(["1289660/30"], f.center.deliveredIds)
+        XCTAssertEqual(0, g.reminders.runs)
+    }
+
+    func testATappedReminderLeavesNothingOfItsSession() async {
+        // 14:11: the 10 minute reminder of Lucy's 14:20 talk is tapped (iOS removes it); the 30
+        // minute one is still delivered. Kotlin showed one notification per session and the tap
+        // removed it (autoCancel). Lucy's other talk keeps its reminder.
+        let f = fixture(at: "2026-11-11T14:11:00-07:00", speakingAs: lucy)
+        let g = f.graph
+        let gi = TestData.repo.session("1249844")!
+        f.center.deliver(DeliveredReminder(identifier: "1249844/30", sessionId: "1249844", minutesBefore: 30, date: gi.start.minusMinutes(30)))
+        f.center.deliver(DeliveredReminder(identifier: "1289660/30", sessionId: "1289660", minutesBefore: 30, date: gi.start.minusMinutes(30)))
+        g.notificationTapped(sessionId: "1249844")
+        XCTAssertEqual("1249844", g.pendingDirectionsSessionId)
+        await g.reminders.settle()
+        XCTAssertEqual(["1249844/30"], f.center.removedDeliveredIds)
+        XCTAssertEqual(["1289660/30"], f.center.deliveredIds)
+        XCTAssertEqual(0, g.reminders.runs)
+    }
+
     func testPermissionIsAskedWhenTheUserPicksANameThenOnlyOnce() async {
         let f = fixture(permission: .notDetermined, holdPermission: true)
         let g = f.graph

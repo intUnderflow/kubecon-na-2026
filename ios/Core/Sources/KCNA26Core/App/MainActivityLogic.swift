@@ -7,7 +7,7 @@ import Foundation
 ///   `xcrun simctl launch booted <bundle id> -fakeNow 2026-11-11T09:00:00-07:00`, or the
 ///   scheme's "Arguments Passed On Launch". ``AppGraph/start(arguments:)`` applies it.
 /// - A tapped reminder opens Directions for its session (``ReminderContent/directionsSessionId(_:)``,
-///   ``AppGraph/notificationTapped(userInfo:)``).
+///   ``AppGraph/notificationTapped(sessionId:)``).
 /// - The root shows nothing until the data is loaded, then the navigation shell and, on a fresh
 ///   install, the first-run speaker sheet; or the error text if the bundled data can't load
 ///   (``RootState``).

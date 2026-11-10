@@ -13,7 +13,9 @@ import Foundation
 /// - ``threadIdentifier``: "talk:<session id>" (Kotlin's notification tag): a session's 30 and
 ///   10 minute reminders group together. Android shows one notification per session (the 10
 ///   minute one replaces the 30 minute one); iOS can't replace a delivered notification without
-///   running app code, so the next reschedule keeps only the newest delivered one per session
+///   running app code, so the app removes the session's older ones where it gets control: when
+///   one is presented in the foreground or tapped (``ReminderScheduler/tidyDelivered(of:keeping:)``)
+///   and at every reschedule, once a shorter reminder of the session has come due
 ///   (``ReminderScheduler/deliveredToRemove(_:_:_:_:_:_:)``).
 /// - ``userInfo``: the action, session id, offset and kind (strings), read back by
 ///   ``keyOf(identifier:userInfo:)`` and ``directionsSessionId(_:)`` (the tap opens Directions).

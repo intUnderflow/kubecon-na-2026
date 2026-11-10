@@ -101,7 +101,7 @@ final class NotificationAskTests: XCTestCase {
         XCTAssertFalse(NotificationAsk.asking)
     }
 
-    func testTheCurrentValuesAtStartDoNotTrigger() {
+    func testTheCurrentValuesAtStartDoNotTrigger() async {
         var n = 0
         let settings = SettingsStore(InMemoryStore())
         settings.setSpeakingAs("Lucy Sweet")
@@ -109,6 +109,10 @@ final class NotificationAskTests: XCTestCase {
         going.toggle("1251049")
         going.setRemindMinutes(5)
         let job = NotificationAsk.triggers(settings, going) { n += 1 }
+        // Kotlin's collector receives each StateFlow's current value before the cancel (and
+        // drop(1) skips it): give the watch a main-actor turn and a flush to deliver anything.
+        await Task.yield()
+        job.flush()
         job.cancel()
         XCTAssertEqual(0, n)
     }
@@ -134,6 +138,27 @@ final class NotificationAskTests: XCTestCase {
         going.toggle("1251049")
         job.flush()
         XCTAssertEqual(3, n)
+    }
+
+    func testAfterTheStartOnlyTheValueThatChangesCounts() async throws {
+        // Stores that already need notifications (a name, a star, reminders on): a later change
+        // counts once, for itself, never again for the values the stores held at the start.
+        var n = 0
+        let settings = SettingsStore(InMemoryStore())
+        settings.setSpeakingAs("Lucy Sweet")
+        let going = GoingStore(InMemoryStore())
+        going.toggle("1251049")
+        going.setRemindMinutes(5)
+        let job = NotificationAsk.triggers(settings, going) { n += 1 }
+        going.toggle("1251218")
+        for _ in 0..<200 where n < 1 { try await Task.sleep(nanoseconds: 5_000_000) }
+        await Task.yield()
+        job.flush()
+        XCTAssertEqual(1, n)
+        going.setRemindMinutes(15)
+        job.flush()
+        XCTAssertEqual(2, n)
+        job.cancel()
     }
 
     func testTheTriggerRuleCountsEachValueThatTurnsOn() {

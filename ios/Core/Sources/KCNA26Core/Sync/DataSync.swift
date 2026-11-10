@@ -112,21 +112,27 @@ struct SyncStatus: Sendable, Hashable {
 /// crash in an uncaught-exception handler; iOS can't run code when Swift traps, so here the
 /// guard keeps a launch marker instead:
 ///
-/// - The marker is the file `root/.running` ("<version> <epoch millis>"), written atomically
-///   whenever this process is in the foreground with a downloaded set on probation in use: when
-///   ``loadActive()`` picks one, when a check swaps one in, and on every ``onForeground()``
-///   (which also re-dates it). It is deleted by ``onBackground()``, which the app calls whenever
-///   it leaves the foreground (scenePhase `.inactive` or `.background`, and
-///   `willTerminateNotification`): the last moment iOS reliably runs app code before it may
-///   suspend or kill the app, so a clean exit, a swipe-away from the app switcher or a later
-///   kill in the background never leave a marker behind. (A file, not prefs: the write reaches
-///   the file system at once and survives a crash right after; UserDefaults may persist later.)
+/// - The marker is the file `root/.running` ("<version> <epoch millis> <app version>"), written
+///   atomically whenever this process is in the foreground with a downloaded set on probation in
+///   use: when ``loadActive()`` picks one, when a check swaps one in, and on every
+///   ``onForeground()`` (which also re-dates it). Writing it also sets a one-shot timer for the
+///   moment probation ends, which deletes it if the app is still in the foreground then (it can
+///   stay there for hours: Directions keeps the screen on), so a marker exists only while the
+///   set is on probation, and a crash after probation is never counted, as on Android.
+/// - It is deleted by ``onBackground()``, which the app calls whenever it leaves the foreground
+///   (scenePhase `.inactive` or `.background`, and `willTerminateNotification`): the last moment
+///   iOS reliably runs app code before it may suspend or kill the app, so a clean exit, a
+///   swipe-away from the app switcher or a later kill in the background never leave a marker
+///   behind. (A file, not prefs: the write reaches the file system at once and survives a crash
+///   right after; UserDefaults may persist later.)
 /// - A marker still there at the next launch means the previous process died in the
 ///   foreground: a crash (or a watchdog / out-of-memory kill, or the phone switching off, which
 ///   is why one crash is not enough). ``installCrashGuard()`` counts it with Android's rules
-///   (``onCrash(version:at:)``), taking the marker's time as the crash time: a crash counts if
-///   the foreground session it ended began during the set's probation. It runs once per
-///   process, before anything else touches the marker (``loadActive()``, ``onForeground()`` and
+///   (``onCrash(version:at:appVersion:)``), taking the marker's time as the crash time (the
+///   timer above keeps it within probation) and the marker's app version as the version that
+///   crashed (the relaunch may already be an app update: the rollback is remembered for the
+///   version that crashed, as Android's in-process count does). It runs once per process,
+///   before anything else touches the marker (``loadActive()``, ``onForeground()`` and
 ///   ``onBackground()`` call it first), so the launch that follows the ``MAX_CRASHES``th crash
 ///   already starts from the bundled resources, as Android's next start does.
 /// - The marker is never written while the app is in the background (after ``onBackground()``,
@@ -151,6 +157,7 @@ final class DataSync: Observable, @unchecked Sendable {
     private let nowMillis: @Sendable () -> Int64
     private let appVersion: Int
     private let log: @Sendable (String) -> Void
+    private let schedule: @Sendable (Int64, @escaping @Sendable () -> Void) -> Void
 
     private struct State {
         var active: ActiveData?
@@ -164,6 +171,8 @@ final class DataSync: Observable, @unchecked Sendable {
         /// ``installCrashGuard()``'s result, once it has run.
         var result: Bool?
         var foreground = true
+        /// When the pending probation-end timer fires (wall-clock millis), if one is pending.
+        var probationTimerAt: Int64?
     }
 
     private let state = Locked(State())
@@ -185,6 +194,8 @@ final class DataSync: Observable, @unchecked Sendable {
     ///   - appVersion: `CFBundleVersion` (``appVersion(from:)``): remembered rejections apply to
     ///     this app version only.
     ///   - log: debug messages (Android `Log.d`); prints in debug builds by default.
+    ///   - schedule: runs an action after a delay in wall-clock millis, on any thread (the crash
+    ///     guard's probation-end timer); ``dispatchAfter`` by default. Tests pass a fake clock's.
     init(
         root: URL,
         bundled: @escaping @Sendable (String) throws -> Data,
@@ -194,7 +205,8 @@ final class DataSync: Observable, @unchecked Sendable {
         onSwapped: @escaping @Sendable (ActiveData) -> Void = { _ in },
         nowMillis: @escaping @Sendable () -> Int64 = { Date().epochMillis },
         appVersion: Int = 0,
-        log: @escaping @Sendable (String) -> Void = DataSync.debugLog
+        log: @escaping @Sendable (String) -> Void = DataSync.debugLog,
+        schedule: @escaping @Sendable (Int64, @escaping @Sendable () -> Void) -> Void = DataSync.dispatchAfter
     ) {
         self.root = root
         self.bundled = bundled
@@ -205,6 +217,7 @@ final class DataSync: Observable, @unchecked Sendable {
         self.nowMillis = nowMillis
         self.appVersion = appVersion
         self.log = log
+        self.schedule = schedule
     }
 
     /// The data set in use; nil until ``loadActive()`` has run. Observable.
@@ -521,7 +534,7 @@ final class DataSync: Observable, @unchecked Sendable {
 
     /// The crash guard's launch step (Android installs its uncaught-exception handler here): if
     /// the previous process left its launch marker (it died in the foreground with a downloaded
-    /// set on probation), counts that crash with ``onCrash(version:at:)``. Runs once per
+    /// set on probation), counts that crash with ``onCrash(version:at:appVersion:)``. Runs once per
     /// DataSync (a process); later calls return the first result. ``loadActive()``,
     /// ``onForeground()`` and ``onBackground()`` run it first, so calling it at launch is
     /// optional. Returns true if it rolled the set back.
@@ -539,22 +552,33 @@ final class DataSync: Observable, @unchecked Sendable {
         let url = markerFile
         guard let data = try? Data(contentsOf: url) else { return false }
         removeIfExists(url)
+        // "<version> <millis> <app version>"; without the app version (the form earlier builds
+        // wrote) the crash is this app version's.
         let parts = String(decoding: data, as: UTF8.self).kotlinTrim().components(separatedBy: " ")
-        guard parts.count == 2, let version = Int(parts[0]), let at = Int64(parts[1]) else {
+        guard parts.count == 2 || parts.count == 3, let version = Int(parts[0]), let at = Int64(parts[1]) else {
             debug("bad launch marker")
             return false
         }
+        var crashedAppVersion: Int?
+        if parts.count == 3 {
+            guard let v = Int(parts[2]) else {
+                debug("bad launch marker")
+                return false
+            }
+            crashedAppVersion = v
+        }
         debug("the last run with v\(version) ended in the foreground: a crash")
-        return onCrash(version: version, at: at)
+        return onCrash(version: version, at: at, appVersion: crashedAppVersion)
     }
 
     /// Android's `onCrash` policy for a crash of the process that used downloaded set `version`
     /// (its launch marker says so; the marker exists only for downloaded sets) at `at` (wall-clock
     /// millis): if the set was on probation then, count it; at ``MAX_CRASHES`` drop the set
-    /// (delete the pointer), so this and every later start use the bundled resources. Returns
-    /// true if it rolled back.
+    /// (delete the pointer), so this and every later start use the bundled resources, and
+    /// remember the rollback for `appVersion`, the app version that crashed (nil: this one).
+    /// Returns true if it rolled back.
     @discardableResult
-    func onCrash(version: Int, at: Int64) -> Bool {
+    func onCrash(version: Int, at: Int64, appVersion crashedAppVersion: Int? = nil) -> Bool {
         if (prefs.int(forKey: DataSync.KEY_PROBATION_VERSION) ?? 0) != version { return false }
         if at &- (prefs.int64(forKey: DataSync.KEY_PROBATION_SINCE) ?? 0) > DataSync.PROBATION_MS { return false }
         let crashes = (prefs.int(forKey: DataSync.KEY_CRASHES) ?? 0) &+ 1
@@ -563,7 +587,7 @@ final class DataSync: Observable, @unchecked Sendable {
             return false
         }
         removeIfExists(pointerFile)
-        let appVersion = appVersion
+        let appVersion = crashedAppVersion ?? appVersion
         prefs.edit { e in
             e.set(version, forKey: DataSync.KEY_BAD_VERSION)
             e.set(appVersion, forKey: DataSync.KEY_BAD_VERSION_APP)
@@ -575,28 +599,53 @@ final class DataSync: Observable, @unchecked Sendable {
     }
 
     /// Writes the launch marker if this process is in the foreground with a downloaded set on
-    /// probation in use (dated now); otherwise makes sure there is none.
+    /// probation in use (dated now, with this app version); otherwise makes sure there is none.
+    /// While it is on probation, also makes sure a timer runs this again just after probation
+    /// ends, which then deletes the marker.
     private func armCrashMarker() {
         installCrashGuard()
-        crashGuard.withLock { g in
+        let appVersion = appVersion
+        let timer: (at: Int64, delay: Int64)? = crashGuard.withLock { g in
             let now = nowMillis()
             let url = markerFile
-            guard g.foreground, let a = state.value.active, a.source == .github, isOnProbation(a.version, at: now) else {
+            guard g.foreground, let a = state.value.active, a.source == .github, let since = probationSince(a.version),
+                now &- since <= DataSync.PROBATION_MS else {
                 removeIfExists(url)
-                return
+                return nil
             }
             do {
                 try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-                try Data("\(a.version) \(now)".utf8).write(to: url, options: .atomic)
+                try Data("\(a.version) \(now) \(appVersion)".utf8).write(to: url, options: .atomic)
             } catch {
                 debug("can't write the launch marker", error)
             }
+            let at = since &+ DataSync.PROBATION_MS &+ 1
+            if g.probationTimerAt == at { return nil } // already pending
+            g.probationTimerAt = at
+            // At least 1 ms; at most a probation (a clock set back: it fires early and re-arms).
+            let delay: Int64 = min(max(at &- now, 1), DataSync.PROBATION_MS + 1)
+            return (at, delay)
+        }
+        // Scheduled outside the lock: the action takes it.
+        if let timer {
+            schedule(timer.delay) { [weak self] in self?.probationTimerFired(timer.at) }
         }
     }
 
-    private func isOnProbation(_ version: Int, at now: Int64) -> Bool {
-        (prefs.int(forKey: DataSync.KEY_PROBATION_VERSION) ?? 0) == version
-            && now &- (prefs.int64(forKey: DataSync.KEY_PROBATION_SINCE) ?? 0) <= DataSync.PROBATION_MS
+    /// The probation-end timer for `at`: re-arms, which deletes the marker once probation is over
+    /// (or, if the clock moved and it fired early, re-dates it and sets a new timer).
+    private func probationTimerFired(_ at: Int64) {
+        crashGuard.withLock { g in
+            if g.probationTimerAt == at { g.probationTimerAt = nil }
+        }
+        armCrashMarker()
+    }
+
+    /// When the set `version` went on probation (wall-clock millis), if it is the one on
+    /// probation (or was: probation is over ``PROBATION_MS`` after that).
+    private func probationSince(_ version: Int) -> Int64? {
+        guard (prefs.int(forKey: DataSync.KEY_PROBATION_VERSION) ?? 0) == version else { return nil }
+        return prefs.int64(forKey: DataSync.KEY_PROBATION_SINCE) ?? 0
     }
 
     // MARK: - Files
@@ -709,6 +758,13 @@ final class DataSync: Observable, @unchecked Sendable {
     /// `CFBundleVersion` as an integer (Android `BuildConfig.VERSION_CODE`), or 0.
     static func appVersion(from bundle: Bundle = .main) -> Int {
         (bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String).flatMap { Int($0.kotlinTrim()) } ?? 0
+    }
+
+    /// Runs `action` on a global queue after `delayMillis` of wall-clock time (a suspended app
+    /// runs it when it resumes, if the time has passed by then): the default `schedule`.
+    static let dispatchAfter: @Sendable (Int64, @escaping @Sendable () -> Void) -> Void = { delayMillis, action in
+        let ms = Int(min(max(delayMillis, 0), Int64(Int32.max)))
+        DispatchQueue.global(qos: .utility).asyncAfter(wallDeadline: .now() + .milliseconds(ms)) { action() }
     }
 
     /// Prints in debug builds (Android `Log.d(TAG, …)`); silent in release builds.

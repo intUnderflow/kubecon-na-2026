@@ -55,8 +55,9 @@ final class DirectionsViewModelTests: XCTestCase {
     private lazy var evictionTalk: String = repo.sessions.first { $0.title.hasPrefix("The Future of Kubernetes Eviction") }!.id
     private let vector = TestData.vectors.compass.first!
 
-    private func vm(_ sessionId: String? = nil) -> DirectionsViewModel {
-        DirectionsViewModel(
+    private func vm(_ sessionId: String? = nil, repo data: Repository? = nil) -> DirectionsViewModel {
+        let repo: Repository = data ?? self.repo
+        return DirectionsViewModel(
             repo: repo,
             router: Router(repo),
             settings: settings,
@@ -284,6 +285,43 @@ final class DirectionsViewModelTests: XCTestCase {
         settings.setDirectionsFrom("EHY")
         XCTAssertEqual("EHY", try XCTUnwrap(vm.plan).from)
         XCTAssertEqual("EHY", vm.directionsFrom)
+    }
+
+    /// Why the app keys the view model by the data set too (Kotlin DirectionsScreen:
+    /// `viewModel(key = "dir-$sessionId-${System.identityHashCode(repo)}")`): it routes with the
+    /// Repository and Router it was built with, so after a live data update moves the talk
+    /// (251 A–C -> 255 EF) only a view model built on the swapped-in pair shows the new room.
+    func testIOS_aLiveDataSwapNeedsANewViewModel() throws {
+        let doc = try XCTUnwrap(TestData.json(Repository.SCHEDULE).objectValue)
+        let talk: String = evictionTalk
+        let sessions: [JSONValue] = (doc["sessions"]?.arrayValue ?? []).map { s in
+            guard let o = s.objectValue, o["id"]?.stringValue == talk else { return s }
+            return JSONValue.object(o.with("room", .string("255EF")))
+        }
+        let schedule = JSON.serializedData(.object(doc.with("sessions", .array(sessions))))
+        let dir = TestData.dataDir
+        let swapped = try Repository.load { name in
+            name == Repository.SCHEDULE ? schedule : try Data(contentsOf: dir.appendingPathComponent(name))
+        }
+        let before = vm()
+        let after = vm(repo: swapped)
+
+        // The old view model still shows the old room: it must be replaced, not kept.
+        XCTAssertEqual("251AC", before.room?.code)
+        XCTAssertEqual(repo.rooms["251AC"]?.pos, before.target)
+
+        let room = try XCTUnwrap(after.room)
+        XCTAssertEqual("255EF", room.code)
+        XCTAssertEqual(swapped.rooms["255EF"]?.pos, after.target)
+        XCTAssertNotEqual(before.target, after.target)
+        XCTAssertEqual(talk, after.session?.id)
+        let reminder = FloorReminder.of(room, try XCTUnwrap(after.plan).route)
+        XCTAssertEqual("255 EF", reminder.roomName)
+        XCTAssertEqual(2, reminder.level)
+        XCTAssertNotEqual(before.plan, after.plan)
+        // The steps and the map's route line end at the new room.
+        XCTAssertEqual(after.target, try XCTUnwrap(after.plan?.route?.points.last))
+        XCTAssertEqual(before.target, try XCTUnwrap(before.plan?.route?.points.last))
     }
 
     /// The production scheduler really runs (and cancels) its delays.

@@ -345,7 +345,13 @@ final class ReminderSchedulingTests: XCTestCase {
             DeliveredReminder(identifier: "1249844/10", sessionId: "1249844", minutesBefore: 10, date: at),
             DeliveredReminder(identifier: "1249844/30", sessionId: "1249844", minutesBefore: 30, date: at.addingTimeInterval(1)),
         ]
-        XCTAssertEqual(["1249844/10"], ReminderScheduler.deliveredToRemove(newerFirst, repo, lucy, [], 10, now))
+        // Before the 10 minute one's moment (the debug fake time moved back), the later delivery stays.
+        let early = gi.start.minusMinutes(11)
+        XCTAssertEqual(["1249844/10"], ReminderScheduler.deliveredToRemove(newerFirst, repo, lucy, [], 10, early))
+        XCTAssertEqual(["1249844/30"], ReminderScheduler.deliveredToRemove(same, repo, lucy, [], 10, early))
+        // Once the 10 minute one is due, the 30 minute one is superseded however late it arrived
+        // (Kotlin's receiver drops it as stale), and the 10 minute one is the session's notification.
+        XCTAssertEqual(["1249844/30"], ReminderScheduler.deliveredToRemove(newerFirst, repo, lucy, [], 10, now))
     }
 
     func testRescheduleRemovesDeliveredRemindersThatNoLongerApply() async {
@@ -360,6 +366,80 @@ final class ReminderSchedulingTests: XCTestCase {
         await f.scheduler.rescheduleNow()
         XCTAssertEqual(["1249844/30", "1249844/10"], center.removedDeliveredIds)
         XCTAssertEqual([], center.deliveredIds)
+    }
+
+    func testAnOlderReminderGoesOnceTheShorterOneIsDueEvenIfThatOneIsGone() {
+        // Lucy's talk at 14:20: the 30 minute reminder was delivered at 13:50, the 10 minute one at
+        // 14:10 and then tapped or swiped away (iOS removed it). Kotlin's 10 minute one replaced
+        // the 30 minute one under the session's tag, so nothing of the session is left.
+        let gi = repo.session("1249844")!
+        let only30 = [DeliveredReminder(identifier: "1249844/30", sessionId: "1249844", minutesBefore: 30, date: gi.start.minusMinutes(30))]
+        XCTAssertEqual(["1249844/30"], ReminderScheduler.deliveredToRemove(only30, repo, lucy, [], 10, gi.start.minusMinutes(9)))
+        // Due at 14:10 sharp (the 10 minute one's moment).
+        XCTAssertEqual(["1249844/30"], ReminderScheduler.deliveredToRemove(only30, repo, lucy, [], 10, gi.start.minusMinutes(10)))
+        // Before then it is the session's notification and stays.
+        XCTAssertEqual([], ReminderScheduler.deliveredToRemove(only30, repo, lucy, [], 10, gi.start.minusMinutes(10).addingTimeInterval(-1)))
+        // The 10 minute one has no shorter one after it: it stays until the session ends.
+        let only10 = [DeliveredReminder(identifier: "1249844/10", sessionId: "1249844", minutesBefore: 10, date: gi.start.minusMinutes(10))]
+        XCTAssertEqual([], ReminderScheduler.deliveredToRemove(only10, repo, lucy, [], 10, gi.start.minusMinutes(1)))
+
+        // "Going": the lead time lowered from 15 to 10 after the 15 minute one was delivered: the
+        // 10 minute one replaces it when it comes due. Raised from 10 to 15: the 10 stays.
+        let star = repo.session("1203350")!
+        let star15 = [DeliveredReminder(identifier: "1203350/15", sessionId: "1203350", minutesBefore: 15, date: star.start.minusMinutes(15))]
+        XCTAssertEqual([], ReminderScheduler.deliveredToRemove(star15, repo, nil, ["1203350"], 10, star.start.minusMinutes(12)))
+        XCTAssertEqual(["1203350/15"], ReminderScheduler.deliveredToRemove(star15, repo, nil, ["1203350"], 10, star.start.minusMinutes(10)))
+        let star10 = [DeliveredReminder(identifier: "1203350/10", sessionId: "1203350", minutesBefore: 10, date: star.start.minusMinutes(10))]
+        XCTAssertEqual([], ReminderScheduler.deliveredToRemove(star10, repo, nil, ["1203350"], 15, star.start.minusMinutes(5)))
+        XCTAssertFalse(ReminderScheduler.supersededBySchedule(star, 10, ReminderSpec(.going, [15]), star.start.minusMinutes(5)))
+        XCTAssertTrue(ReminderScheduler.supersededBySchedule(gi, 30, ReminderSpec(.mine, [30, 10]), gi.start.minusMinutes(10)))
+        XCTAssertFalse(ReminderScheduler.supersededBySchedule(gi, 30, ReminderSpec(.mine, [30, 10]), gi.start.minusMinutes(11)))
+    }
+
+    func testRescheduleRemovesTheOlderReminderAfterTheNewerOneWasTapped() async {
+        let center = FakeReminderCenter()
+        let gi = repo.session("1249844")!
+        center.deliver(DeliveredReminder(identifier: "1249844/30", sessionId: "1249844", minutesBefore: 30, date: gi.start.minusMinutes(30)))
+        // 14:11: the 10 minute one was tapped (iOS removed it); the app becomes active and re-plans.
+        let f = fixture(iso(gi.start.minusMinutes(9)), me: lucy, center: center)
+        await f.scheduler.rescheduleNow()
+        XCTAssertEqual(["1249844/30"], center.removedDeliveredIds)
+        XCTAssertEqual([], center.deliveredIds)
+    }
+
+    func testTheSessionsOtherDeliveredRemindersGoWhenOneIsShownOrTapped() async {
+        let gi = repo.session("1249844")!
+        let delivered = [
+            DeliveredReminder(identifier: "1249844/30", sessionId: "1249844", minutesBefore: 30, date: gi.start.minusMinutes(30)),
+            DeliveredReminder(identifier: "1249844/10", sessionId: "1249844", minutesBefore: 10, date: gi.start.minusMinutes(10)),
+            DeliveredReminder(identifier: "1203350/10", sessionId: "1203350", minutesBefore: 10, date: gi.start.minusMinutes(10)),
+            DeliveredReminder(identifier: "welcome-tip", sessionId: nil, minutesBefore: nil, date: gi.start),
+        ]
+        // Shown: the 10 minute one replaces the session's others (Kotlin's per-session tag).
+        XCTAssertEqual(["1249844/30"], ReminderScheduler.deliveredOfSession(delivered, "1249844", keeping: 10))
+        // Tapped: nothing of the session is left (Kotlin's autoCancel).
+        XCTAssertEqual(["1249844/30", "1249844/10"], ReminderScheduler.deliveredOfSession(delivered, "1249844", keeping: nil))
+        XCTAssertEqual([], ReminderScheduler.deliveredOfSession(delivered, "999999", keeping: nil))
+
+        let center = FakeReminderCenter()
+        for d in delivered { center.deliver(d) }
+        let f = fixture(iso(gi.start.minusMinutes(10)), me: lucy, center: center)
+        f.scheduler.tidyDelivered(of: "1249844", keeping: 10)
+        await f.scheduler.settle()
+        XCTAssertEqual(["1249844/30"], center.removedDeliveredIds)
+        XCTAssertEqual(["1249844/10", "1203350/10", "welcome-tip"], center.deliveredIds)
+        XCTAssertTrue(f.logs.value.contains("reminders: removed delivered 1249844/30 (1249844/10 shown)"))
+        f.scheduler.tidyDelivered(of: "1249844")
+        await f.scheduler.settle()
+        XCTAssertEqual(["1203350/10", "welcome-tip"], center.deliveredIds)
+        XCTAssertTrue(f.logs.value.contains("reminders: removed delivered 1249844/10 (1249844 tapped)"))
+        // Nothing to remove: no call, no log.
+        let removeCalls = center.removedDeliveredIds.count
+        let removed = await f.scheduler.removeDelivered(of: "1249844")
+        XCTAssertEqual([], removed)
+        XCTAssertEqual(removeCalls, center.removedDeliveredIds.count)
+        // No reschedule ran.
+        XCTAssertEqual(0, f.scheduler.runs)
     }
 
     // MARK: - Content

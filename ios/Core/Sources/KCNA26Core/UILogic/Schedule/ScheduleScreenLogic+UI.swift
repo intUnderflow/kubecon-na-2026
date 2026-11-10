@@ -29,7 +29,10 @@ extension ScheduleScreenLogic {
     // MARK: - unstarred (keyed by goingOnly and the day)
 
     /// The key `unstarred` is remembered under (Kotlin `rememberSaveable(goingOnly, dayKey)`):
-    /// a new filter state or another day starts from an empty set.
+    /// a new filter state or another day starts from an empty set. `dayKey` is the RESOLVED day
+    /// (``ScheduleLogic/resolveDayKey(_:_:_:)`` at the current minute, = ``State/dayKey``), never
+    /// the stored `selectedDay`: at midnight a stale selection moves on to the new today with
+    /// `selectedDay` unchanged, and Kotlin starts a fresh set then.
     static func unstarredKey(goingOnly: Bool, dayKey: String?) -> String {
         (goingOnly ? "1" : "0") + "|" + (dayKey ?? "")
     }

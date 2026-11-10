@@ -107,7 +107,9 @@ struct DeliveredReminder: Sendable, Hashable {
 /// iOS keeps at most 64 pending requests per app, so only the soonest ``MAX_PENDING`` (60) of
 /// the plan are scheduled (``select(_:max:)``); the rest follow at a later reschedule, as the
 /// first ones fire (the app becomes active often during a conference day). Delivered reminders
-/// are tidied up at the same time (``deliveredToRemove(_:_:_:_:_:_:)``).
+/// are tidied up at the same time (``deliveredToRemove(_:_:_:_:_:_:)``), and right away when a
+/// reminder is presented in the foreground or tapped (``tidyDelivered(of:keeping:)``), so a
+/// session keeps one notification at most, like Kotlin's one per session.
 ///
 /// Runs on the main actor (it reads the stores); the notification center calls are `async`.
 /// Reschedules run one at a time, in order; each reads the settings when it starts, so the last
@@ -130,6 +132,8 @@ final class ReminderScheduler {
     private var requested = 0
     private var covered = 0
     private var lastCount = 0
+    private var tidying: [Int: Task<Void, Never>] = [:]
+    private var nextTidy = 0
 
     /// Number of reschedules that have finished (diagnostics and tests).
     private(set) var runs = 0
@@ -173,9 +177,39 @@ final class ReminderScheduler {
         return await serve(requested)
     }
 
-    /// Waits until every reschedule requested so far has finished.
+    /// Waits until every reschedule requested so far has finished (and every
+    /// ``tidyDelivered(of:keeping:)`` started so far).
     func settle() async {
         if covered < requested { _ = await serve(requested) }
+        while let t = tidying.values.first {
+            await t.value
+        }
+    }
+
+    /// Removes the session's other delivered reminders, where the app gets control (Kotlin shows
+    /// one notification per session, tag "talk:<id>": posting the next reminder replaces the one
+    /// showing, and a tap removes it). ``AppGraph`` calls it when a reminder is presented in the
+    /// foreground (`keeping` its `minutesBefore`) and when one is tapped (`keeping` nil: all of the
+    /// session's). Returns at once; the work runs in a task (``settle()`` waits for it).
+    func tidyDelivered(of sessionId: String, keeping minutesBefore: Int? = nil) {
+        nextTidy += 1
+        let n = nextTidy
+        tidying[n] = Task {
+            await self.removeDelivered(of: sessionId, keeping: minutesBefore)
+            self.tidying[n] = nil
+        }
+    }
+
+    /// The work of ``tidyDelivered(of:keeping:)``. Returns the identifiers removed.
+    @discardableResult
+    func removeDelivered(of sessionId: String, keeping minutesBefore: Int? = nil) async -> [String] {
+        let gone = ReminderScheduler.deliveredOfSession(await center.delivered(), sessionId, keeping: minutesBefore)
+        if !gone.isEmpty {
+            await center.removeDelivered(gone)
+            let why: String = minutesBefore.map { m in "\(sessionId)/\(m) shown" } ?? "\(sessionId) tapped"
+            log("reminders: removed delivered \(gone.joined(separator: ",")) (\(why))")
+        }
+        return gone
     }
 
     private func serve(_ n: Int) async -> Int {
@@ -273,9 +307,11 @@ final class ReminderScheduler {
     /// The delivered reminders to remove from Notification Center at `now` (app clock):
     /// - its session is no longer mine or starred (or gone from the data), as Kotlin's reschedule does;
     /// - its session has ended (Kotlin posts with `setTimeoutAfter(end of the session)`);
-    /// - a newer reminder of the same session was delivered (Kotlin shows one notification per
-    ///   session, the 10 minute one replacing the 30 minute one).
-    /// Notifications that aren't reminders are left alone.
+    /// - it is superseded (Kotlin shows one notification per session, the 10 minute one replacing
+    ///   the 30 minute one): a shorter reminder of the session has come due by `now`
+    ///   (``supersededBySchedule(_:_:_:_:)``; also once that one was tapped or swiped away, when
+    ///   only the older one is left), or, of the session's remaining ones, it isn't the newest.
+    /// Notifications that aren't reminders are left alone. In `delivered` order.
     nonisolated static func deliveredToRemove(
         _ delivered: [DeliveredReminder],
         _ repo: Repository,
@@ -284,26 +320,50 @@ final class ReminderScheduler {
         _ goingMinutes: Int,
         _ now: Date
     ) -> [String] {
+        var gone = [Bool](repeating: false, count: delivered.count)
         var newest: [String: DeliveredReminder] = [:]
-        for d in delivered {
+        for (i, d) in delivered.enumerated() {
             guard let id = d.sessionId else { continue }
+            guard let s = repo.session(id), let spec = ReminderPlanner.specFor(s, me, going, goingMinutes) else {
+                gone[i] = true
+                continue
+            }
+            if !now.isBefore(s.effectiveEnd) {
+                gone[i] = true
+                continue
+            }
+            if let m = d.minutesBefore, supersededBySchedule(s, m, spec, now) {
+                gone[i] = true
+                continue
+            }
             if let best = newest[id], !isNewer(d, than: best) { continue }
             newest[id] = d
         }
         var remove: [String] = []
-        for d in delivered {
+        for (i, d) in delivered.enumerated() {
             guard let id = d.sessionId else { continue }
-            guard let s = repo.session(id), ReminderPlanner.specFor(s, me, going, goingMinutes) != nil else {
-                remove.append(d.identifier)
-                continue
-            }
-            if !now.isBefore(s.effectiveEnd) {
-                remove.append(d.identifier)
-                continue
-            }
-            if newest[id]?.identifier != d.identifier { remove.append(d.identifier) }
+            if gone[i] || newest[id]?.identifier != d.identifier { remove.append(d.identifier) }
         }
         return remove
+    }
+
+    /// Whether a reminder `minutesBefore` session `s` is superseded at `now` by the schedule: one
+    /// of `spec`'s shorter offsets has come due (Kotlin posts it under the same tag, replacing
+    /// this one; its tap or swipe then leaves nothing of the session).
+    nonisolated static func supersededBySchedule(_ s: Session, _ minutesBefore: Int, _ spec: ReminderSpec, _ now: Date) -> Bool {
+        spec.offsets.contains { o in o < minutesBefore && !s.start.minusMinutes(o).isAfter(now) }
+    }
+
+    /// The delivered reminders of `sessionId` to remove when the app sees one of them presented
+    /// or tapped (Kotlin's one notification per session, tag "talk:<id>"): all of them except
+    /// those `keeping` minutes before (the one being presented); all of them when `keeping` is nil
+    /// (a tap: Kotlin's `setAutoCancel(true)` removes the session's notification).
+    nonisolated static func deliveredOfSession(_ delivered: [DeliveredReminder], _ sessionId: String, keeping minutesBefore: Int?) -> [String] {
+        delivered.compactMap { d in
+            guard d.sessionId == sessionId else { return nil }
+            if let m = minutesBefore, d.minutesBefore == m { return nil }
+            return d.identifier
+        }
     }
 
     /// Later delivery first; at the same moment, the shorter lead time (the later reminder).

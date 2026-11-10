@@ -539,10 +539,14 @@ let routers = RepositoryScoped { Router($0) }; routers[repo]   // one value per 
   DataSourceText: `status.last is Updated` -> `if case .updated? = status.last`; `NotModified ||
   NotNewer` -> "Up to date"; failures show nothing. `SyncStatus(checking:last:lastCheckedAt:)`
   (`lastCheckedAt` is wall clock).
-- Crash guard (Android: uncaught-exception handler): a launch marker file `root/.running` is
-  written while the app is in the foreground with a downloaded set on probation and deleted by
-  `onBackground()`; a marker left at the next launch counts as a crash (Kotlin's `onCrash`
-  rules, dated by the marker). The app MUST call `onBackground()` whenever it leaves `.active`,
+- Crash guard (Android: uncaught-exception handler): a launch marker file `root/.running`
+  ("<set version> <wall millis> <app version>") is written while the app is in the foreground
+  with a downloaded set on probation, deleted by `onBackground()`, and also deleted by a one-shot
+  timer when probation ends mid-session (the init's `schedule:` parameter, default
+  `DataSync.dispatchAfter`; tests pass a fake-clock scheduler). A marker left at the next launch
+  counts as a crash (Kotlin's `onCrash` rules, dated by the marker; a rollback is remembered for
+  the marker's app version, i.e. the build that crashed, so an app update relaunching after the
+  crash downloads the set again). The app MUST call `onBackground()` whenever it leaves `.active`,
   or every exit during probation counts as a crash (2 = rollback to the bundled data).
   `installCrashGuard()` (once per process) is optional: `loadActive`/`onForeground`/`onBackground`
   run it first. Use the App-level `scenePhase` (aggregate of all scenes).
@@ -603,7 +607,9 @@ MapCameraState, DirectionsViewModel, DirectionsScheduler, CompassSensor, Locatio
 
 ```swift
 let vm = DirectionsViewModel(repo: graph.repository, router: graph.router, settings: graph.settings, clock: graph.clock, sessionId: id,
-                             log: { logger.debug("\($0)") })        // @MainActor @Observable; keep in the screen's @State
+                             log: { logger.debug("\($0)") })        // @MainActor @Observable; keep in the screen's @State,
+                             // keyed by (sessionId, ObjectIdentifier(graph.repository)) like Kotlin's "dir-<id>-<repo>":
+                             // a live data swap (new graph.repository + graph.router) must build a new one
 vm.session; vm.room; vm.target (PointXY? nil = OFF/unknown: no live map); vm.options (FromOptions)
 vm.plan        // RoutePlan?(from, route, summary, showFallbackNote, startKey); re-routes only when planKey changes
 vm.fix; vm.noFix; vm.deviceLocationOff; vm.heading (smoothed TRUE heading, nil = hide cone); vm.calibrate; vm.directionsFrom
@@ -659,7 +665,7 @@ unique in the one module): the pure part of a Compose file `X.kt` is `XLogic.swi
 | Kotlin | Core file: types |
 |---|---|
 | ui/schedule/ScheduleRows.kt | ScheduleRows.swift: `ScheduleRow` (Kotlin `Row`), `ScheduleRows` |
-| ui/schedule/ScheduleScreen.kt | ScheduleScreenLogic.swift: `state`, `State.rows`, `listLayout`, `onTalk`, `toggleColo`, `unstarredAfterToggle`, `keepGoing`, `jumpTarget`/`jumpFallback`, `hideColoScrollTarget`, `Jump`, `JUMP_WAIT_MS`, `STICKY_HEADING_HEIGHT` |
+| ui/schedule/ScheduleScreen.kt | ScheduleScreenLogic.swift: `state`, `State.rows`, `listLayout`, `onTalk`, `toggleColo`, `unstarredAfterToggle`, `keepGoing`, `jumpTarget`/`jumpFallback`, `hideColoScrollTarget`, `Jump`, `JUMP_WAIT_MS`, `STICKY_HEADING_HEIGHT`; ScheduleScreenLogic+UI.swift: `encodeSet`/`decodeSet` (`@SceneStorage` sets), `unstarredKey`, `SavedUnstarred`, `hideColoScrollTarget(_:_:cardTop:)` |
 | ui/schedule/ScheduleCards.kt | ScheduleCardsLogic.swift: `sessionCard` -> `SessionCardModel`, `sessionCardColors`, `groupCard` -> `GroupCardModel` (`kids: [KidRowModel]`), `KidPill`, `breakRow`, `GROUP_COLLAPSE_OVER`/`GROUP_COLLAPSED_SHOWS` |
 | ui/schedule/ColocatedCards.kt | ColocatedCardsLogic.swift: `cardRow` -> `ColoTile`s, `roomLine`, `hoursPieces`, `lineText`, `lineMaxLines`, `agendaRows` -> `AgendaRow`, `footer`, strings |
 | ui/schedule/ScheduleHeader.kt | ScheduleHeaderLogic.swift: `BRAND`, `dayTabDescription`, `dayTabsCurrent`, `dayStatusLine`, strings |
@@ -698,7 +704,14 @@ Color(argb: role.argb(in: colors.palette))              // PaletteRole -> Color
 - Widths are points (Kotlin dp), `Double`: `ScheduleRows.coloColumns(contentWidth)`, `WidthClass.fromWidth(windowWidth)`.
 - `DataSourceText.source(...)` takes the WALL clock (`Date()`), like `SyncStatus.lastCheckedAt`.
 - `ScheduleScreenLogic.State` is the whole Kotlin `remember` chain at one minute (`now` is
-  truncated); recompute it when an input changes. `unstarred` resets when `goingOnly` or the day changes.
+  truncated); recompute it when an input changes.
+- `unstarred` (Kotlin `rememberSaveable(goingOnly, dayKey)`) resets whenever `goingOnly` or the
+  RESOLVED day `State.dayKey` (`ScheduleLogic.resolveDayKey(index.days, minute, selectedDay)`)
+  changes, including the midnight move of a stale or absent selection to the new today while
+  `selectedDay` stays the same; never key it on `selectedDay`. Save it as a `SavedUnstarred`
+  under `unstarredKey(goingOnly:dayKey:)` of the resolved day, pass `saved.ids(for: key)` to
+  `state(...)` (a set saved under another key reads as empty), toggle with
+  `saved.afterToggle(id, nowGoing:goingOnly:currentKey:)`, and on a key change save an empty one.
 - `DetailsScrollCarry`: on iOS the swap happens when the width class changes (the details move
   between the sheet and the list–detail pane); one per scene.
 
@@ -749,11 +762,17 @@ AppNavLogic.EMPTY_DETAILS_TITLE ("Pick a session", caps) / EMPTY_DETAILS_TEXT; F
 - Reminders: `ReminderScheduler` implements the "App layer" paragraph of "Schedule + reminder
   planning" above: plan -> the soonest `ReminderScheduler.MAX_PENDING` (60) -> cancel stale
   (ReminderStore's armed keys plus any pending "id/min" request not planned) -> tidy delivered
-  ones (`deliveredToRemove`: not wanted, session ended = Kotlin `setTimeoutAfter`, superseded by a
-  newer one of the same session = Kotlin's per-session tag) -> add (identifier = key, fire date =
+  ones (`deliveredToRemove`: not wanted, session ended = Kotlin `setTimeoutAfter`, superseded =
+  Kotlin's per-session tag: a shorter reminder of the session has come due (`supersededBySchedule`,
+  also when that one was already tapped or swiped away), or of the session's remaining ones it
+  isn't the newest delivered) -> add (identifier = key, fire date =
   trigger minus the fake offset) -> `setArmed`. Serialized; requests made while one waits are
   served by it. AppGraph re-plans at launch, on every `onForeground()`, on speakingAs / ids /
   remindMinutes / fake offset changes, after a data swap and after permission is granted.
+  Where the app gets control it also tidies at once (`reminders.tidyDelivered(of:keeping:)`,
+  `deliveredOfSession`; `settle()` waits for it): `reminderFiring` returning `.show` removes the
+  session's other delivered reminders (Kotlin's post replaces by tag), `notificationTapped`
+  removes all of the session's (Kotlin `setAutoCancel(true)`: nothing of it is left).
   No boot receiver, receiver work or exact-alarm handling on iOS (pending requests survive
   reboots and updates).
 - Debug fake time: launch argument `-fakeNow 2026-11-11T09:00:00-07:00` / `-fakeNow clear`

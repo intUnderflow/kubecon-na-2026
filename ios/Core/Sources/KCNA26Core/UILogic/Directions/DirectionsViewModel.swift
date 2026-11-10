@@ -1,10 +1,16 @@
 import Foundation
 import Observation
 
-/// State of one Directions screen (Kotlin: an AndroidX `ViewModel`, activity-scoped and keyed per
-/// session "dir-<id>", so the last fix, the heading and the route survive recreation without
-/// flashing "Finding you…"). iOS: create one per pushed Directions screen and keep it in the
-/// view's `@State` (it lives as long as the screen is in the navigation stack).
+/// State of one Directions screen (Kotlin: an AndroidX `ViewModel`, activity-scoped and keyed
+/// "dir-<sessionId>-<identityHashCode(repo)>", so the last fix, the heading and the route survive
+/// recreation without flashing "Finding you…"). iOS: create one per pushed Directions screen and
+/// keep it in the view's `@State` (it lives as long as the screen is in the navigation stack),
+/// keyed by the data set too: the session, room, target, From options and routes come from the
+/// `repo` and `router` it was built with, so when a live data update swaps
+/// `AppGraph.repository` (and `router`), build a new one with the new pair (cache it under
+/// `(sessionId, ObjectIdentifier(graph.repository))`, or put
+/// `.id(ObjectIdentifier(graph.repository))` on the screen's content). Otherwise an open screen
+/// keeps routing to the talk's old room until it is left and reopened.
 ///
 /// Location and compass updates belong to the screen's lifecycle and are pushed in by the app
 /// layer (CoreLocation; see ``LocationTracker`` and ``CompassSensor`` for the exact wiring):

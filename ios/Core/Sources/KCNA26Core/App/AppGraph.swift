@@ -268,8 +268,11 @@ final class AppGraph {
     /// `sessionId` in the scene that routes it (Kotlin MainActivity `handleIntent` ->
     /// `nav.openDirectionsFromNotification`). The delegate reads the id with
     /// ``ReminderContent/directionsSessionId(_:)`` (nil: not a reminder, nothing to do).
+    /// iOS removes the tapped notification; the session's other delivered reminders go too
+    /// (Kotlin: one notification per session, removed by the tap, `setAutoCancel(true)`).
     func notificationTapped(sessionId: String) {
         pendingDirectionsSessionId = sessionId
+        reminders.tidyDelivered(of: sessionId)
     }
 
     /// Takes the tapped reminder's session (once).
@@ -289,12 +292,14 @@ final class AppGraph {
 
     /// A reminder fired while the app is in the foreground (`willPresent`): the receiver's
     /// checks (``ReminderFiring/check(_:_:_:_:_:_:_:)``) at this moment. Show it only for
-    /// ``ReminderFiring/show(title:text:channelId:expiresAt:)``.
+    /// ``ReminderFiring/show(title:text:channelId:expiresAt:)``; then the session's older
+    /// delivered reminders go (Kotlin posts it under the session's tag, replacing the one showing).
     func reminderFiring(sessionId: String, minutesBefore: Int) async -> ReminderFiring {
         guard let repo = try? await awaitRepository() else { return .unknownSession }
         let now = clock.now()
         let firing = ReminderFiring.check(sessionId, minutesBefore, repo, settings.speakingAs, going.ids, going.remindMinutes, now)
         if let line = firing.logLine(sessionId, minutesBefore, now: now, posted: firing.shows) { services.log(line) }
+        if firing.shows { reminders.tidyDelivered(of: sessionId, keeping: minutesBefore) }
         return firing
     }
 
