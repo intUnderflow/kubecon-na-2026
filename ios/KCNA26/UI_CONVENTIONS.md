@@ -331,8 +331,8 @@ Platform/  NotificationCenterReminders.swift (ReminderScheduling), NotificationC
 
 ### Screen entry points
 
-The shell calls exactly these (stubs exist until the screen agents replace them; keep the
-signatures, explicit `init`s, as shown). Closures are called on the main actor.
+The shell calls exactly these (keep the signatures and explicit `init`s as shown when
+changing a screen). Closures are called on the main actor.
 
 | File | Entry point | Called with |
 |---|---|---|
