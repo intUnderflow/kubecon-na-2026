@@ -1,0 +1,70 @@
+# Builds the iOS app and runs the iOS core tests on every push or pull request that touches it.
+name: iOS
+
+on:
+  push:
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios.yml"
+  pull_request:
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build app and test core (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Core tests (ios/Core)
+        working-directory: ios/Core
+        run: swift test
+
+      - name: Build app (iOS Simulator, Debug)
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/KCNA26.xcodeproj -scheme KCNA26 \
+            -configuration Debug -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/sim CODE_SIGNING_ALLOWED=NO build
+
+      - name: Build app (iOS device, Release, unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/KCNA26.xcodeproj -scheme KCNA26 \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -derivedDataPath build/device CODE_SIGNING_ALLOWED=NO build
+
+      - name: Upload the simulator app
+        uses: actions/upload-artifact@v4
+        with:
+          name: KCNA26-simulator-app
+          path: build/sim/Build/Products/Debug-iphonesimulator/KCNA26.app
+          if-no-files-found: error
+          retention-days: 14
+
+  core-linux:
+    name: Core tests (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Core tests (ios/Core)
+        working-directory: ios/Core
+        run: swift test

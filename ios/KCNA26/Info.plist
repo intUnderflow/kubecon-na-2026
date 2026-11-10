@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Merged with the keys Xcode generates from the INFOPLIST_KEY_* build settings
+  (GENERATE_INFOPLIST_FILE = YES). Only keys that have no build setting live here.
+-->
+<plist version="1.0">
+<dict>
+	<!-- Where the app looks for newer schedule data (data/manifest.json and the files it lists).
+	     Set by the KCNA26_DATA_BASE_URL build setting; a fork can point it at its own repository.
+	     Must end with '/'. -->
+	<key>KCNA26DataBaseURL</key>
+	<string>$(KCNA26_DATA_BASE_URL)</string>
+	<!-- Bundled fonts (Resources/Fonts is copied as a folder). -->
+	<key>UIAppFonts</key>
+	<array>
+		<string>Fonts/atkinson_hyperlegible_regular.ttf</string>
+		<string>Fonts/atkinson_hyperlegible_bold.ttf</string>
+		<string>Fonts/barlow_condensed_semibold.ttf</string>
+		<string>Fonts/barlow_condensed_bold.ttf</string>
+	</array>
+	<!-- The launch screen uses the app's background colour, like the Android splash. -->
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+	</dict>
+</dict>
+</plist>
