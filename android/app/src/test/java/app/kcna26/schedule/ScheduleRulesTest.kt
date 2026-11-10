@@ -8,8 +8,11 @@ import org.junit.Test
 class ScheduleRulesTest {
     private val repo = TestData.repo
 
-    /** schedule.json's sessions: the web rules made their category and group. (colocated.json's come precomputed.) */
-    private val web = repo.sessions.filter { !it.isColocated }
+    /**
+     * schedule.json's official sessions: the web rules made their category and group.
+     * (colocated.json's and the evening parties' come precomputed.)
+     */
+    private val web = repo.sessions.filter { !it.isColocated && !it.id.startsWith(TestData.PARTY_ID_PREFIX) }
 
     /**
      * The three talks the web's /^(…|Break|…)/ files as breaks, with the category

@@ -228,7 +228,7 @@ final class JSONTests: XCTestCase {
     func testMatchesPythonsReadingOfTheDataFiles() throws {
         // Spot checks against values a JSON reader with no ordering bugs must see.
         let rooms = try XCTUnwrap(TestData.json(Repository.ROOMS)["rooms"]?.objectValue)
-        XCTAssertEqual(rooms.count, 40)
+        XCTAssertEqual(rooms.keys.filter { !$0.hasPrefix(TestData.PARTY_ROOM_PREFIX) }.count, 40)
         let way = TestData.json(Repository.WAYFINDING)
         XCTAssertEqual(way["entrances"]?.objectValue?.keys, ["E200S", "EWT", "EHY", "E200W"])
         XCTAssertEqual(way["origin"]?["metersPerDegLon"]?.numberValue?.literal, "84300") // written as an integer...

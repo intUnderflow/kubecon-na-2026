@@ -6,7 +6,7 @@ final class ScheduleRulesTests: XCTestCase {
     private let repo = TestData.repo
 
     /// schedule.json's sessions: the web rules made their category and group. (colocated.json's come precomputed.)
-    private var web: [Session] { repo.sessions.filter { !$0.isColocated } }
+    private var web: [Session] { repo.sessions.filter { !$0.isColocated && !$0.id.hasPrefix(TestData.PARTY_ID_PREFIX) } }
 
     /// The three talks the web's /^(…|Break|…)/ files as breaks, with the category (and group)
     /// they get with a word-bounded "Break". schedule.json may carry either value for these, so

@@ -1,5 +1,5 @@
 {
- "_about": "Every room used by the schedule. lat/lng are WGS84; x/y are metres east/north of the West Temple & 200 South intersection (see wayfinding.json origin). Positions were placed from the official venue floor plans and OpenStreetMap building outlines, accurate to about ±15 m. level is the floor number shown in the venue (Level 1 = street level at 200 South). OFF has no position (off-site; use the official listing).",
+ "_about": "Every room used by the schedule. lat/lng are WGS84; x/y are metres east/north of the West Temple & 200 South intersection (see wayfinding.json origin). Positions were placed from the official venue floor plans and OpenStreetMap building outlines, accurate to about ±15 m. level is the floor number shown in the venue (Level 1 = street level at 200 South). OFF has no position (off-site; use the official listing). PARTY-* rooms are off-site party venues without a position (scripts/fetch_parties.py).",
  "rooms": {
   "151": {
    "name": "Room 151",
@@ -550,6 +550,106 @@
    "whereText": "East Registration on the Upper Concourse, inside the West Temple entrance at 100 South.",
    "attachNode": "EWT",
    "finalStep": "Coat and bag check is at East Registration, just inside the West Temple entrance."
+  },
+  "PARTY-147-W-BROADWAY": {
+   "name": "147 W Broadway",
+   "buildingLabel": "Off-site",
+   "whereText": "Off-site, at 147 W Broadway."
+  },
+  "PARTY-ADDRESS-ON-REGISTRATION": {
+   "name": "Address on registration",
+   "buildingLabel": "Off-site",
+   "whereText": "Off-site. The host shares the address when you register."
+  },
+  "PARTY-CLARK-PLANETARIUM": {
+   "name": "Clark Planetarium",
+   "buildingLabel": "110 S 400 W",
+   "whereText": "Off-site, at 110 S 400 W."
+  },
+  "PARTY-DELTA-CENTER": {
+   "name": "Delta Center",
+   "buildingLabel": "301 S Temple",
+   "whereText": "Off-site, at 301 S Temple."
+  },
+  "PARTY-EDISON-HOUSE": {
+   "name": "Edison House",
+   "buildingLabel": "335 S 200 W",
+   "whereText": "Off-site, at 335 S 200 W."
+  },
+  "PARTY-FLANKER-KITCHEN": {
+   "name": "Flanker Kitchen",
+   "buildingLabel": "6 N Rio Grande St",
+   "whereText": "Off-site, at 6 N Rio Grande St."
+  },
+  "PARTY-GRACIE-S": {
+   "name": "Gracie's",
+   "buildingLabel": "326 S West Temple",
+   "whereText": "Off-site, at 326 S West Temple."
+  },
+  "PARTY-KEYS-ON-MAIN": {
+   "name": "Keys on Main",
+   "buildingLabel": "242 S Main St",
+   "whereText": "Off-site, at 242 S Main St."
+  },
+  "PARTY-LAKE-EFFECT": {
+   "name": "Lake Effect",
+   "buildingLabel": "155 W 200 S",
+   "whereText": "Off-site, at 155 W 200 S."
+  },
+  "PARTY-LE-MERIDIEN": {
+   "name": "Le Méridien",
+   "buildingLabel": "131 S 300 W",
+   "whereText": "Off-site, at 131 S 300 W."
+  },
+  "PARTY-MUSEUM-OF-ILLUSIONS": {
+   "name": "Museum of Illusions",
+   "buildingLabel": "110 S Rio Grande St",
+   "whereText": "Off-site, at 110 S Rio Grande St."
+  },
+  "PARTY-POPLAR-STREET-PUB": {
+   "name": "Poplar Street Pub",
+   "buildingLabel": "242 S 200 W",
+   "whereText": "Off-site, at 242 S 200 W."
+  },
+  "PARTY-PUBLIK-SPACE": {
+   "name": "Publik Space",
+   "buildingLabel": "975 S W Temple St",
+   "whereText": "Off-site, at 975 S W Temple St."
+  },
+  "PARTY-QUARTERS-ARCADE-BAR": {
+   "name": "Quarters Arcade Bar",
+   "buildingLabel": "5 E 400 S",
+   "whereText": "Off-site, at 5 E 400 S."
+  },
+  "PARTY-REPEAL": {
+   "name": "Repeal",
+   "buildingLabel": "19 E 200 S B-200",
+   "whereText": "Off-site, at 19 E 200 S B-200."
+  },
+  "PARTY-SKY-SLC": {
+   "name": "Sky SLC",
+   "buildingLabel": "149 Pierpont Ave",
+   "whereText": "Off-site, at 149 Pierpont Ave."
+  },
+  "PARTY-SOUNDWELL-SLC": {
+   "name": "Soundwell SLC",
+   "buildingLabel": "149 W 200 S",
+   "whereText": "Off-site, at 149 W 200 S."
+  },
+  "PARTY-SQUATTERS-BREWERY": {
+   "name": "Squatters Brewery",
+   "buildingLabel": "147 W Broadway",
+   "whereText": "Off-site, at 147 W Broadway."
+  },
+  "PARTY-THE-TASTING-ROOM": {
+   "name": "The Tasting Room",
+   "buildingLabel": "357 W 200 S",
+   "whereText": "Off-site, at 357 W 200 S."
+  },
+  "PARTY-VAN-RYDER-ROOFTOP-BAR": {
+   "name": "Van Ryder Rooftop Bar",
+   "buildingLabel": "131 S 300 W",
+   "whereText": "Off-site, at 131 S 300 W."
   }
  }
 }

@@ -60,7 +60,7 @@ class ColocatedRepositoryTest {
         assertEquals(repo.coloEvents.map { it.name }.sortedWith(String.CASE_INSENSITIVE_ORDER), repo.coloEvents.map { it.name })
         assertEquals(212, repo.coloEvents.sumOf { it.talkCount })
         assertEquals(11, repo.supersededIds.size)
-        assertEquals(40, repo.rooms.size) // rooms.json only: the walking graph's rooms are unchanged
+        assertEquals(40, TestData.venueRooms.size) // rooms.json only: the walking graph's rooms are unchanged
         assertEquals(setOf("FOY", "LCH4"), repo.extraRooms.keys)
         assertTrue(repo.extraRooms.values.none { it.hasPosition })
         // Details: every co-located session is bundled.

@@ -129,7 +129,7 @@ final class RouterTests: XCTestCase {
     // ---------------------------------------------------------------- reachability
 
     func testEveryRoomExceptOffIsReachableFromEveryEntranceAndRoom() {
-        let rooms = repo.rooms.values.filter { $0.code != "OFF" }
+        let rooms = TestData.venueRooms.filter { $0.code != "OFF" }
         XCTAssertEqual(rooms.count, 39)
         let starts: [RouteFrom] = way.entrances.keys.map { .entrance($0) } + rooms.map { .room($0.code) }
         for from in starts {

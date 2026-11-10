@@ -50,7 +50,7 @@ class RepositoryTest {
 
     @Test
     fun roomsIncludingOffSite() {
-        assertEquals(40, repo.rooms.size)
+        assertEquals(40, TestData.venueRooms.size)
         val off = repo.room("OFF")!!
         assertEquals("Off-site", off.name)
         assertFalse(off.hasPosition)
@@ -63,6 +63,29 @@ class RepositoryTest {
         assertNull(repo.room("HL")!!.buildingLabel)
         // Every session's room exists.
         assertTrue(repo.sessions.all { repo.room(it.room) != null })
+    }
+
+    @Test
+    fun partiesAreOffSiteSocialSessions() {
+        // The evening parties (scripts/fetch_parties.py) ride on things the released apps already
+        // show: a "soc" session in a room without a position, with the host's page as its link.
+        val parties = repo.sessions.filter { it.id.startsWith(TestData.PARTY_ID_PREFIX) }
+        for (s in parties) {
+            assertEquals(s.id, "soc", s.category)
+            assertEquals(s.id, "kubecon", s.event)
+            assertTrue(s.id, s.room.startsWith(TestData.PARTY_ROOM_PREFIX))
+            assertEquals(s.id, false, repo.room(s.room)?.hasPosition)
+            assertTrue(s.id, s.officialUrl.startsWith("https://"))
+            assertTrue(s.id, s.speakers.isEmpty())
+            assertFalse(s.id, s.note.isNullOrEmpty())
+            assertTrue(s.id, (s.end ?: s.start) > s.start)
+            assertTrue(s.id, (repo.details[s.id]?.description ?: "").contains("conferenceparties.com"))
+        }
+        // Every party venue is used, and nothing else is in one.
+        assertEquals(
+            repo.rooms.keys.filter { it.startsWith(TestData.PARTY_ROOM_PREFIX) }.toSet(),
+            parties.map { it.room }.toSet(),
+        )
     }
 
     @Test

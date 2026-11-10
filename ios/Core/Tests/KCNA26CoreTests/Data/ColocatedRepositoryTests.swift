@@ -61,7 +61,7 @@ final class ColocatedRepositoryTests: XCTestCase {
         XCTAssertEqual(repo.coloEvents.map(\.name).stableSorted(with: .caseInsensitiveOrder), repo.coloEvents.map(\.name))
         XCTAssertEqual(212, repo.coloEvents.reduce(0) { $0 + $1.talkCount })
         XCTAssertEqual(11, repo.supersededIds.count)
-        XCTAssertEqual(40, repo.rooms.count) // rooms.json only: the walking graph's rooms are unchanged
+        XCTAssertEqual(40, TestData.venueRooms.count) // rooms.json only: the walking graph's rooms are unchanged
         XCTAssertEqual(Set(["FOY", "LCH4"]), Set(repo.extraRooms.keys))
         XCTAssertTrue(repo.extraRooms.values.allSatisfy { !$0.hasPosition })
         // Details: every co-located session is bundled.

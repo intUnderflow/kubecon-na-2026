@@ -135,7 +135,7 @@ class RouterTest {
 
     @Test
     fun everyRoomExceptOffIsReachableFromEveryEntranceAndRoom() {
-        val rooms = repo.rooms.values.filter { it.code != "OFF" }
+        val rooms = TestData.venueRooms.filter { it.code != "OFF" }
         assertEquals(39, rooms.size)
         val starts = way.entrances.keys.map { RouteFrom.Entrance(it) } + rooms.map { RouteFrom.Room(it.code) }
         for (from in starts) {

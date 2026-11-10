@@ -38,7 +38,7 @@ final class RepositoryTests: XCTestCase {
     }
 
     func testRoomsIncludingOffSite() throws {
-        XCTAssertEqual(40, repo.rooms.count)
+        XCTAssertEqual(40, TestData.venueRooms.count)
         let off = try XCTUnwrap(repo.room("OFF"))
         XCTAssertEqual("Off-site", off.name)
         XCTAssertFalse(off.hasPosition)
@@ -51,6 +51,29 @@ final class RepositoryTests: XCTestCase {
         XCTAssertNil(try XCTUnwrap(repo.room("HL")).buildingLabel)
         // Every session's room exists.
         XCTAssertTrue(repo.sessions.allSatisfy { repo.room($0.room) != nil })
+    }
+
+    func testPartiesAreOffSiteSocialSessions() throws {
+        // The evening parties (scripts/fetch_parties.py) ride on things the released apps already
+        // show: a "soc" session in a room without a position, with the host's page as its link.
+        let parties = repo.sessions.filter { $0.id.hasPrefix(TestData.PARTY_ID_PREFIX) }
+        let details = try repo.details
+        for s in parties {
+            XCTAssertEqual("soc", s.category, s.id)
+            XCTAssertEqual("kubecon", s.event, s.id)
+            XCTAssertTrue(s.room.hasPrefix(TestData.PARTY_ROOM_PREFIX), s.id)
+            XCTAssertEqual(false, repo.room(s.room)?.hasPosition, s.id)
+            XCTAssertTrue(s.officialUrl.hasPrefix("https://"), s.id)
+            XCTAssertTrue(s.speakers.isEmpty, s.id)
+            XCTAssertFalse((s.note ?? "").isEmpty, s.id)
+            XCTAssertTrue((s.end ?? s.start) > s.start, s.id)
+            XCTAssertTrue((details[s.id]?.description ?? "").contains("conferenceparties.com"), s.id)
+        }
+        // Every party venue is used, and nothing else is in one.
+        XCTAssertEqual(
+            Set(repo.rooms.keys.filter { $0.hasPrefix(TestData.PARTY_ROOM_PREFIX) }),
+            Set(parties.map { $0.room })
+        )
     }
 
     func testWayfindingAndVenue() {

@@ -101,6 +101,16 @@ enum TestData {
         return details.count
     }()
 
+    /// Ids of the evening parties start with this. scripts/fetch_parties.py adds them from an
+    /// unofficial list; they are not on the official agenda, and the list changes from day to day.
+    static let PARTY_ID_PREFIX = "party-"
+
+    /// Room codes of the parties' off-site venues start with this (rooms without a position).
+    static let PARTY_ROOM_PREFIX = "PARTY-"
+
+    /// rooms.json without the party venues: the conference's own rooms (Kotlin `TestData.venueRooms`).
+    static var venueRooms: [Room] { repo.rooms.values.filter { !$0.code.hasPrefix(PARTY_ROOM_PREFIX) } }
+
     /// A clock frozen at an ISO time ("2026-11-11T09:00:00-07:00", Denver local
     /// "2026-11-11T09:00", or "…Z"). Traps on a malformed time (a test bug).
     static func clockAt(_ iso: String) -> FixedClock {

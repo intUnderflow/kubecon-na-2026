@@ -1,6 +1,7 @@
 package app.kcna26
 
 import app.kcna26.data.Repository
+import app.kcna26.data.Room
 import app.kcna26.time.FixedClock
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -47,6 +48,18 @@ object TestData {
 
     /** How many entries details.json holds (see [scheduleCount]). */
     val detailsCount: Int by lazy { Repository.json.parseToJsonElement(text(Repository.DETAILS)).jsonObject.size }
+
+    /**
+     * Ids of the evening parties start with this. scripts/fetch_parties.py adds them from an
+     * unofficial list; they are not on the official agenda, and the list changes from day to day.
+     */
+    const val PARTY_ID_PREFIX = "party-"
+
+    /** Room codes of the parties' off-site venues start with this (rooms without a position). */
+    const val PARTY_ROOM_PREFIX = "PARTY-"
+
+    /** rooms.json without the party venues: the conference's own rooms. */
+    val venueRooms: List<Room> by lazy { repo.rooms.values.filter { !it.code.startsWith(PARTY_ROOM_PREFIX) } }
 
     /** A clock frozen at an ISO time ("2026-11-11T09:00:00-07:00" or Denver local "2026-11-11T09:00"). */
     fun clockAt(iso: String): FixedClock = FixedClock.parse(iso)
