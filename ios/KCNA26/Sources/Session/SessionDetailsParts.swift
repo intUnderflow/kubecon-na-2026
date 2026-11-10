@@ -544,7 +544,7 @@ struct DirectionsBar: View {
                 } label: {
                     HStack(spacing: 8) {
                         AppIconImage(.directionsWalk, size: 22)
-                        CapsText(SessionText.DIRECTIONS, style: type.button.copy(size: 18), lineLimit: 1)
+                        CapsText(SessionText.DIRECTIONS, style: type.button.copy(size: 18))
                     }
                 }
                 .buttonStyle(InkButtonStyle(minHeight: 56, horizontalPadding: 20, fillsWidth: true))

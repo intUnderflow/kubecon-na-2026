@@ -486,3 +486,69 @@ Schedule screen notes:
   so a long title wraps beside them rather than under them.
 - **Not ported**: Kotlin's `BackHandler` (Back hides the keyboard, then clears the search) has no
   iOS counterpart: the keyboard's Search key hides it, the field's clear button clears it.
+
+## Session details and Settings (Sources/Session, Sources/Settings)
+
+Kotlin `ui/session/SessionSheet.kt`, `SessionDetailsParts.kt`, `DetailsScrollCarry.kt` and
+`ui/settings/SettingsScreen.kt`, `FirstRunSheet.kt`, `DataSourceRow.kt`. The logic is Core's:
+`SessionDetailsLogic` (states, meta, pills, getting there, about, links, Directions bar),
+`SessionText` (every details string), `DescriptionFormat` (description blocks / runs),
+`DetailsRepository` (`graph.details`), `DetailsScrollCarry`, `SettingsScreenLogic`,
+`FirstRunSheetLogic`, `SpeakerPicker`, `DataSourceText`, and the iOS-only end of Settings in
+`SettingsScreenLogic` "+UI" (UILogic/Settings/SettingsScreen+UI.swift: credits, font licences,
+app version). Kotlin's `SessionText.kt` and `SpeakerPicker.kt` are pure, so they have no app
+file (and must not: Core has `SessionText.swift` / `SpeakerPicker.swift`, file names are unique
+in the one module).
+
+| File | Views (internal unless noted) |
+|---|---|
+| Session/SessionDetails.swift | `SessionDetails(sessionId:onDirections:contentPadding:onClose:)` (the wide pane's entry point) |
+| Session/SessionSheet.swift | `SessionSheet(sessionId:onDismiss:onDirections:)` (the compact sheet's content), `SessionDetailsContent(sessionId:onDirections:contentPadding:onClose:inSheet:)` (shared by both: loading, scroll, ×, Directions bar); private `LoadedDetails` |
+| Session/SessionDetailsParts.swift | `DetailsBody(session:repo:room:result:showLoading:me:reserveCloseSpace:)`, `DescriptionText(blocks:)` (+ `DescriptionText.attributed(rich, style:, linkColor:)`: a `DescriptionFormat.Rich` as an `AttributedString`), `DirectionsBar(session:room:onDirections:showDivider:horizontalPadding:bottomPadding:)`, `GrabBar()`, `CloseButton(onClick:)` (the 48 pt × on a `bg` circle, "Close"); private `MetaRow`, `WhereRow`, `DetailsColoInfo`, `DetailsPills` / `DetailsPillsLine`, `DetailsSectionLabel`, `SpeakerItem`, `GettingThereLine`, `AboutSection`, `LinksRow`, `LinkButton` |
+| Session/DetailsScrollCarry.swift | `DetailsScrollView(sessionId:canScrollForward:) { content }` (Kotlin `verticalScroll(rememberDetailsScrollState(id))`); private `DetailsScrollMetrics`, `DetailsScrollTracker`, `DetailsRestoreMarker` |
+| Settings/SettingsScreen.swift | `SettingsScreen(onBack:)` (the entry point), `OptionRow(title:subtitle:selected:onClick:)` (radio-style row), `SpeakerOptionsMemo` (`SpeakerPicker.options` once per `Repository`, held in `@State`); private `SpeakingAsIntro`, `CreditsSection`, `LicenseItem`, `LicenseSheet` |
+| Settings/FirstRunSheet.swift | `FirstRunSpeakerSheet()` (the entry point), `PickRow(title:subtitle:accessibilityText:onClick:)` (a picking row, also the licence rows) |
+| Settings/DataSourceRow.swift | `DataSourceRow()` ("SCHEDULE DATA", "Updated … · Check now", the source line) |
+
+- **Loading** (Kotlin `produceState`): the body starts from `graph.details.peekResult(id)` (no
+  I/O: the sheet is instant when the details are known); `.task(id:)` keyed by the details set
+  (held and compared by identity: a live data update brings a new `DetailsRepository`) and the
+  id runs `await details.load(id)` when `SessionDetailsLogic.needsLoad` (unknown or
+  `.unavailable`). "Loading…" waits `LOADING_DELAY_MS` (a second `.task(id: result == nil)`);
+  `SessionDetailsLogic.about` picks loading / unavailable / description / nothing.
+- **Layout**: `VStack { ZStack(alignment: .topTrailing) { DetailsScrollView { body column ≤ maxTextWidth }; CloseButton }; DirectionsBar }`;
+  side padding `SessionDetailsLogic.horizontalPadding(wide: widthClass.isWide && !inSheet)`
+  (24 / 18), 20 pt above in the pane, the 25 pt `GrabBar` room in the sheet. The sheet sets
+  `.presentationBackground(surface)`, `.presentationCornerRadius(sheetRadius)` and
+  `.presentationDragIndicator(.visible)` (the system bar replaces Kotlin's own grab bar and lets
+  VoiceOver resize the sheet); the shell keeps the detents. The bar is pinned: in the sheet it
+  sits at the sheet's bottom (Kotlin's sheet wraps short content instead).
+- **Description**: one `Text(AttributedString)` per block: bold runs in the style's bold face
+  (`piece.font = style.bold.font`), italic `font.italic()`, links `.link` + `foregroundColor` +
+  `underlineStyle = Text.LineStyle.single` in `category("talk")`, plus `.tint` (Text draws
+  links in the tint). Links open through the environment's `openURL`.
+- **Pills tick**: `DetailsPills` reads `NowReader`; its content is never empty (a zero-size
+  placeholder), so the ticker runs and "Live · N min left" appears when the session starts.
+- **Scroll carry** (`DetailsScrollView`): while on screen the offset is written to
+  `\.detailsScrollCarry` (`put`); a new details view for the same session takes it once on its
+  first layout and scrolls an invisible marker (an overlay, `.id`, `scrollTo(_, anchor: .top)`)
+  to the top; on disappear the carry is emptied unless `nav.openSessionId` is still this
+  session. This covers the sheet ↔ pane swap on a width-class change and the compact sheet
+  coming back after Directions (the shell drops the sheet while Directions is pushed). It also
+  reports `canScrollForward` (content bottom below the viewport) for the bar's hairline.
+- **Settings**: the system navigation bar (back = the system's) with "SETTINGS"
+  (`dayHeading` 26/28, ink) as its principal item and navigation title; then
+  `GeometryReader { ScrollView { LazyVStack(pinnedViews: [.sectionHeaders]) } }` with the side
+  padding `PageLayout.sidePadding(forWidth:maxContent: maxTextWidth)`: the RSVP setting, the data
+  row, "I’m speaking as", then one `Section` whose pinned header is the speaker `SearchField`
+  (`.words`, focus dropped on a pick) over None, the speakers, the no-match note, the theme note
+  and the iOS credits (`CreditsSection`: README credits, a `PickRow` per bundled font opening
+  `LicenseSheet` with `Licenses/<file>` from the bundle, the app version).
+- **First run**: title and text (hidden while the search field has the focus, Kotlin's
+  "keyboard up"), a hairline, the list, then search and Skip at the bottom; VoiceOver order
+  title/text, search/Skip, list (`accessibilitySortPriority`). Skip is `Text("Skip")` in
+  `type.button` (not caps, as Kotlin) on `OutlineButtonStyle(fillsWidth: true, shape: .capsule)`.
+  Background `bg`, the system drag indicator; picking or Skip calls `settings.finishFirstRun`.
+- **Data row**: "Check now" is a plain button in `type.button` (not caps, as Kotlin), pink,
+  muted and disabled while `status.checking`; the source line is announced to VoiceOver when it
+  changes (`DirectionsAnnouncer.announce`, Kotlin's polite live region). Times use the wall clock.
