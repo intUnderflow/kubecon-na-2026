@@ -96,6 +96,9 @@ final class DirectionsLocationService {
         refreshDeviceLocation()
         let status = DirectionsLocationService.coreAuthorization(manager.authorizationStatus)
         if authorization != status { authorization = status }
+        #if DEBUG
+        if ScreenshotMode.directionsStarted(vm) { return }  // -screenshotScene <name> (ScreenshotMode.swift)
+        #endif
         if status == .notDetermined && !asked {
             asked = true
             manager.requestWhenInUseAuthorization()

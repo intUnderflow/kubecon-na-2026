@@ -173,6 +173,9 @@ struct ScheduleScreen: View {
         .task(id: pendingJump) {
             await waitForJump(proxy)
         }
+        #if DEBUG
+        .task { await applyScreenshotSeed(ctx.index, proxy) }  // -screenshotScene <name> (ScreenshotMode.swift)
+        #endif
     }
 
     /// Kotlin `stickyHeader` content: a half-hour block or a named section.
@@ -601,3 +604,41 @@ private struct RowTopReader: View {
         .accessibilityHidden(true)
     }
 }
+
+#if DEBUG
+extension ScheduleScreen {
+    /// Debug screenshot scenes (``ScreenshotMode``), once per process: the scene's saved state
+    /// (search cleared, RSVP filter off, its day, expanded groups and open co-located cards),
+    /// then where the list starts: the top, the day heading, or a banner-style jump to a talk
+    /// (Kotlin `onTalk` without opening it: the scene's navigation opens the details).
+    fileprivate func applyScreenshotSeed(_ index: ScheduleIndex, _ proxy: ScrollViewProxy) async {
+        guard let seed = ScreenshotMode.takeScheduleSeed() else { return }
+        let tap: ScheduleScreenLogic.TalkTap? = seed.talkTap(index)
+        searchText = ""
+        goingOnly = false
+        unstarredText = ""
+        selectedDay = tap?.selectedDay ?? seed.selectedDay
+        expandedText = ScheduleScreenLogic.encodeSet(seed.expanded)
+        coloOpenText = ScheduleScreenLogic.encodeSet(tap?.coloOpen ?? seed.coloOpen)
+        switch seed.scroll {
+        case .top:
+            break
+        case .dayHeading:
+            // Once the new rows are laid out.
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            let head: ScheduleRow? = memo.lastRows.first { row in
+                if case .dayHead = row { return true }
+                return false
+            }
+            if let head {
+                proxy.scrollTo(head.key, anchor: .top)
+            }
+        case .session:
+            if let tap {
+                jumpSerial += 1
+                pendingJump = PendingJump(jump: tap.jump, serial: jumpSerial)
+            }
+        }
+    }
+}
+#endif

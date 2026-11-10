@@ -278,7 +278,8 @@ and reminder scheduling" in ios/Core/CONVENTIONS.md); the shell only wires and l
 App/       KCNA26App.swift (@main, scenePhase), AppDelegate.swift (UNUserNotificationCenter delegate,
            willTerminate), AppGraph+Live.swift (AppGraph.shared), RootView.swift (rootState, per-window
            NavModel + @SceneStorage, first-run sheet, tapped-reminder routing), AppNav.swift
-           (NavigationStack, ScheduleLayer, details sheet/pane, EmptyDetailsHint), SceneEnvironment.swift
+           (NavigationStack, ScheduleLayer, details sheet/pane, EmptyDetailsHint), SceneEnvironment.swift,
+           ScreenshotMode.swift (Debug only: the -screenshotScene hooks, see Core App/ScreenshotScene.swift)
 Platform/  NotificationCenterReminders.swift (ReminderScheduling), NotificationCenterPermission.swift
            (NotificationPermission), NotificationCenterDelegate.swift, DirectionsLocationService.swift
            (CoreLocation for Directions), SystemLinks.swift (Settings pages, URLs)

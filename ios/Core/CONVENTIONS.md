@@ -778,6 +778,14 @@ AppNavLogic.EMPTY_DETAILS_TITLE ("Pick a session", caps) / EMPTY_DETAILS_TEXT; F
 - Debug fake time: launch argument `-fakeNow 2026-11-11T09:00:00-07:00` / `-fakeNow clear`
   (Xcode scheme "Arguments Passed On Launch", or `xcrun simctl launch booted <bundle id> -fakeNow …`);
   `MainActivityLogic.fakeNowArgument(args)` is the parsing (last one wins), applied in debug builds only.
+- Debug screenshot scenes (`#if DEBUG`, App/ScreenshotScene.swift): `ScreenshotScene.from(arguments:)`
+  reads `-screenshotScene <name>`; a scene has the fake time, speaker, RSVPs, reminder time, From,
+  `navSaved` (screens + open session), `scheduleSeed` (day, expanded, open co-located cards, scroll:
+  `.top` / `.dayHeading` / `.session(id)` via `talkTap(index)`) and the Directions `location` /
+  `heading`. `ScreenshotScene.services(base)` swaps in the offline / quiet stand-ins
+  (`ScreenshotDataFetcher`, `ScreenshotReminders`, `ScreenshotNotificationPermission`);
+  `scene.apply(settings:going:clock:)` runs before `graph.start`. The app's hooks are in
+  KCNA26/Sources/App/ScreenshotMode.swift; ios/scripts/screenshots.sh takes the shots.
 - Tests: `AppServices(filesDirectory:prefs:bundledData:dataFetcher:detailsFetcher:reminders:notificationPermission:...)`
   with a temp dir, `InMemoryStore`s, `FakeReminderCenter` (ReminderSchedulingTests.swift, shared),
   `clockOverride:`/`wallClock:` `FixedClock`s; see AppGraphTests.

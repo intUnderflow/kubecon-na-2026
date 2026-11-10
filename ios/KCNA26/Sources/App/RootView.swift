@@ -57,6 +57,9 @@ private struct SceneRoot: View {
                 .onAppear {
                     if nav == nil {
                         nav = NavModel(restoring: NavModel.Saved(stack: savedStack, session: savedSession))
+                        #if DEBUG
+                        if let scene = ScreenshotMode.takeNavSaved() { nav = NavModel(restoring: scene) }  // -screenshotScene <name> (ScreenshotMode.swift)
+                        #endif
                     }
                 }
         }

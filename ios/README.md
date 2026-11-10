@@ -53,6 +53,12 @@ theme, components, icons and the screens' entry points.
 - Fake time: run with the launch argument `-fakeNow 2026-11-11T09:00:00-07:00` (Debug builds;
   the shared scheme has it, disabled, under Run > Arguments). `-fakeNow clear` goes back to the
   real time. The fake time keeps ticking and survives restarts.
+- Screenshots: `-screenshotScene <name>` (Debug builds) stages one of the README screenshots
+  (`schedule`, `monday`, `session`, `directions`, `list-detail`, `ipad-directions`; the scenes
+  are in Core's `App/ScreenshotScene.swift`, the app's hooks in `App/ScreenshotMode.swift`).
+  `scripts/screenshots.sh <KCNA26.app> <dir>` takes them all in fresh simulators; the
+  **iOS screenshots** workflow (`.github/workflows/ios-screenshots.yml`, run by hand or by a
+  commit message containing `[screenshots]`) commits them to `docs/screenshots/ios/`.
 - Data source: the `KCNA26_DATA_BASE_URL` build setting (Info.plist `KCNA26DataBaseURL`) is where
   the app looks for newer data; it must end with `/`.
 
