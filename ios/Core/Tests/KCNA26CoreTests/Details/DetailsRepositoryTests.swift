@@ -211,9 +211,9 @@ final class DetailsRepositoryTests: XCTestCase {
 
         let nf = FakeFetcher(.notFound)
         let r2 = repo(nf)
-        res = await r2.load("1370500")
+        res = await r2.load("1370503")
         XCTAssertEqual(DetailsResult.nothing, res)
-        res = await r2.load("1370500")
+        res = await r2.load("1370503")
         XCTAssertEqual(DetailsResult.nothing, res)
         XCTAssertEqual(1, nf.calls.count)
     }

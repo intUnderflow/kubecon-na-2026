@@ -1,6 +1,6 @@
 {
-  "version": 3,
-  "updatedAt": "2026-11-09T23:11:02Z",
+  "version": 4,
+  "updatedAt": "2026-11-10T18:18:51Z",
   "files": {
     "colocated.json": {
       "sha256": "5987602f8ccc700e99585f315e7baac2022c736b311e74e0746b6ea4c70735fd",
@@ -11,8 +11,8 @@
       "bytes": 219260
     },
     "details.json": {
-      "sha256": "61ca591781160e7e2b883a563757b041ac45a1263e0bf001e6a9b2b77d952e25",
-      "bytes": 575581
+      "sha256": "cac100dd2d4e75422bfc92cc6aa74b6a2fcad33bb4afaf9c36c5522b1150b9d1",
+      "bytes": 577191
     },
     "maintainer_summit_details.json": {
       "sha256": "1f7dae6b867dc606156f64839e759cfe2f89306cfb5f0a89d5190e1757d6623d",
@@ -23,8 +23,8 @@
       "bytes": 19322
     },
     "schedule.json": {
-      "sha256": "756d0697f5697ff0ed0c0d1f6a769ba39c297e1d17e1e4afa1503f79fd00d047",
-      "bytes": 367607
+      "sha256": "cb99b46310ad8d273d4f7040f41eec09d6c3281ed4f33d8756ab752c01bab037",
+      "bytes": 368233
     },
     "venue.json": {
       "sha256": "6edb67d378ccdaefa1ac726bb6fdfb5c25cabebf9c86ffafd60fb05ac7a264e3",

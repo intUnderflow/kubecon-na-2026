@@ -175,8 +175,8 @@ class DetailsRepositoryTest {
 
         val nf = FakeFetcher(FetchResult.NotFound)
         val r2 = repo(nf)
-        assertEquals(DetailsResult.None, r2.load("1370500"))
-        assertEquals(DetailsResult.None, r2.load("1370500"))
+        assertEquals(DetailsResult.None, r2.load("1370503"))
+        assertEquals(DetailsResult.None, r2.load("1370503"))
         assertEquals(1, nf.calls.size)
     }
 

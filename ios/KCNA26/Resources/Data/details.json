@@ -528,11 +528,11 @@
 "speakers": [
 {
 "name": "August Simonelli",
-"tagline": "Principal Product Manager - Red Hat"
+"tagline": "Principal Product Manager  - Red Hat"
 },
 {
 "name": "Laura Lorenz",
-"tagline": "SWE at Google"
+"tagline": "Software Engineer"
 },
 {
 "name": "Liqian Luo",
@@ -1669,10 +1669,6 @@
 {
 "name": "Phelipe Fabres",
 "tagline": "Sr. Solutions Architect, GenAI - AWS"
-},
-{
-"name": "Daniel Bichuetti",
-"tagline": "Co-Ceo & CTO"
 }
 ]
 },
@@ -3165,7 +3161,7 @@
 "speakers": [
 {
 "name": "Laura Lorenz",
-"tagline": "SWE at Google"
+"tagline": "Software Engineer"
 },
 {
 "name": "Stephen Kitt",
@@ -6234,12 +6230,12 @@
 "description": "What is the CNCF User Group? What does it do, who’s it for? What are the Platform Factors we’ve been hearing about this week?\n\nJoin co-chairs and members of the CNCF Platform Engineering User Group who will hopefully answer all your question and share the tools and information published by the group to date. Come along and hear directly from some of the group members who have worked on the Platform Factors Initiative.",
 "speakers": [
 {
-"name": "Chris Plank",
-"tagline": "Enterprise Architect, NatWest Group, Scotland"
-},
-{
 "name": "Colin Griffin",
 "tagline": "Creating at Krumware"
+},
+{
+"name": "Avinash Sabat",
+"tagline": "Helping financial institutions move faster and smarter in the cloud — Avinash Sabat, Cloud DevOps and Platform engineer at Synechron"
 }
 ]
 },
@@ -6326,5 +6322,17 @@
 "tagline": "CNCF Ambassador, Co-Organizer, Cartografos Working Group"
 }
 ]
+},
+"1372568": {
+"description": "When deploying workloads from a central hub cluster to multiple managed clusters, two key questions often arise: How long does it take for a workload to reach each cluster, and how can you confirm it arrived successfully?\n\nIn this live demo, we'll launch two local Kubernetes clusters using k3d, connect one to the other as a managed cluster through OCM, and deploy a ManifestWork from the hub.\n\nWe'll then track the deployment using two timestamps: T1, recorded when the hub's admission webhook accepts the write, and T2, recorded when the managed cluster's work agent begins applying that generation. OCM v1.4 supports this capability through the alpha ManifestWorkApplyLogs feature gate.",
+"speakers": []
+},
+"1372858": {
+"description": "Kubernetes was built for long-running services. AI agents are different: mostly idle, bursty, running untrusted code, and needing to resume instantly with their state intact. What does that mean for the platform underneath?\n\nJoin Kubernetes co-founder Tim Hockin and cloud native leader Kelsey Hightower for a live conversation hosted by Savannah Peterson. They’ll explore how Agent Substrate builds on Kubernetes for the agent era, and what the next decade holds for platform teams and the open source community. Expect candid opinions, a little history, and time for audience questions.",
+"speakers": []
+},
+"1372868": {
+"description": "Hear from Kubernetes maintainers and the Steering Committee as they discuss the future of Kubernetes. Come ready with your questions!",
+"speakers": []
 }
 }

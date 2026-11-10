@@ -1,5 +1,5 @@
 {
- "_about": "KubeCon + CloudNativeCon NA 2026 and the CNCF Maintainer Summit (Sun Nov 8), Salt Lake City. Copied from the official agendas on Nov 8, 2026 at 9:20 AM MST. All times are MST (UTC-07:00, zone America/Denver). Registration, coat check, the always-open showcase and poster/kiosk listings are left out on purpose. Updated from data/updates/2026-11-08-sunday.json, checked 2:03 PM MST Nov 8: 10 sessions replaced. Tue–Thu rechecked against the official agenda on Nov 9, 2026 at 4:10 PM MST.",
+ "_about": "KubeCon + CloudNativeCon NA 2026 and the CNCF Maintainer Summit (Sun Nov 8), Salt Lake City. Copied from the official agendas on Nov 8, 2026 at 9:20 AM MST. All times are MST (UTC-07:00, zone America/Denver). Registration, coat check, the always-open showcase and poster/kiosk listings are left out on purpose. Updated from data/updates/2026-11-08-sunday.json, checked 2:03 PM MST Nov 8: 10 sessions replaced. Tue–Thu rechecked against the official agenda on Nov 9, 2026 at 4:10 PM MST. Rechecked again on Nov 10, 2026 at 11:20 AM MST.",
  "timeZone": "America/Denver",
  "me": "Lucy Sweet",
  "anthropicSpeakers": [
@@ -3947,21 +3947,21 @@
    "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1334796"
   },
   {
-   "id": "1370500",
+   "id": "1372568",
    "event": "kubecon",
    "day": "tue",
    "start": "2026-11-10T13:40:00-07:00",
    "end": "2026-11-10T14:05:00-07:00",
    "endIsEstimate": false,
    "room": "PP",
-   "title": "CNCF Project Demos",
+   "title": "Open Cluster Management (OCM): Live Demo Using k3d/KIND",
    "speakers": [],
    "note": null,
    "category": "show",
    "group": null,
    "isMine": false,
    "hasAnthropicSpeaker": false,
-   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1370500"
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1372568"
   },
   {
    "id": "1334797",
@@ -5483,7 +5483,7 @@
    "end": "2026-11-10T18:00:00-07:00",
    "endIsEstimate": false,
    "room": "RA",
-   "title": "Building a Cloud-Native RAG Pipeline from Scratch: Docling Operator, KFP, and OpenSearch",
+   "title": "CANCELED: Building a Cloud-Native RAG Pipeline from Scratch: Docling Operator, KFP, and OpenSearch",
    "speakers": [
     "Krishna Rekapalli"
    ],
@@ -8014,23 +8014,6 @@
    "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1333709"
   },
   {
-   "id": "1370896",
-   "event": "kubecon",
-   "day": "wed",
-   "start": "2026-11-11T13:40:00-07:00",
-   "end": "2026-11-11T15:15:00-07:00",
-   "endIsEstimate": false,
-   "room": "PP",
-   "title": "CNCF Project Demos",
-   "speakers": [],
-   "note": null,
-   "category": "show",
-   "group": null,
-   "isMine": false,
-   "hasAnthropicSpeaker": false,
-   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1370896"
-  },
-  {
    "id": "1369675",
    "event": "kubecon",
    "day": "wed",
@@ -8065,6 +8048,23 @@
    "isMine": false,
    "hasAnthropicSpeaker": false,
    "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1371079"
+  },
+  {
+   "id": "1372858",
+   "event": "kubecon",
+   "day": "wed",
+   "start": "2026-11-11T13:50:00-07:00",
+   "end": "2026-11-11T14:20:00-07:00",
+   "endIsEstimate": false,
+   "room": "PP",
+   "title": "Fireside Chat: Future of Kubernetes and Agents with Tim Hockin and Kelsey Hightower",
+   "speakers": [],
+   "note": null,
+   "category": "show",
+   "group": null,
+   "isMine": false,
+   "hasAnthropicSpeaker": false,
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1372858"
   },
   {
    "id": "1362669",
@@ -8688,6 +8688,23 @@
    "isMine": false,
    "hasAnthropicSpeaker": false,
    "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1336094"
+  },
+  {
+   "id": "1372868",
+   "event": "kubecon",
+   "day": "wed",
+   "start": "2026-11-11T14:50:00-07:00",
+   "end": "2026-11-11T15:15:00-07:00",
+   "endIsEstimate": false,
+   "room": "PP",
+   "title": "Kubernetes: Ask the Experts",
+   "speakers": [],
+   "note": null,
+   "category": "show",
+   "group": null,
+   "isMine": false,
+   "hasAnthropicSpeaker": false,
+   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1372868"
   },
   {
    "id": "1247641",
@@ -9468,8 +9485,7 @@
    "room": "151",
    "title": "Fine-Tuning a Vision Language Model Across Hundreds of GPUs on Kubernetes",
    "speakers": [
-    "Phelipe Fabres",
-    "Daniel Bichuetti"
+    "Phelipe Fabres"
    ],
    "note": null,
    "category": "talk",
@@ -12515,8 +12531,8 @@
    "room": "254",
    "title": "The CNCF Platform Engineering User Group & Platform Factors",
    "speakers": [
-    "Chris Plank",
-    "Colin Griffin"
+    "Colin Griffin",
+    "Avinash Sabat"
    ],
    "note": null,
    "category": "mnt",
