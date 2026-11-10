@@ -329,18 +329,6 @@ The SwiftUI layer builds `Color`s from these; it should not hard-code hex values
 - `InMemoryStore()` replaces `InMemoryPrefs()`; `TestData.instant(iso)` replaces
   `OffsetDateTime.parse(iso).toInstant()` / `Instant.parse(iso)`.
 
-### Hand-offs to later ports (TODO)
-
-- **Schedule port**: `ColocatedRepositoryTest.theScheduleStillLoadsWithoutColocatedJson` (Kotlin
-  lines 230-236) also checks `ScheduleIndex(r).dayView("mon", instant("2026-11-09T08:00:00-07:00"),
-  "Lucy Sweet")!!` for each broken colocated.json (missing file, `"{ not json"`, a bad date):
-  `mon.colo` is empty; `mon.longsTitle == "Co-located + off-site"`; `mon.longsFirst`; exactly 11
-  of `mon.longs` have `session.note == "All-Access pass"`. The foundation test ports the
-  repository half only. Add the dayView half as `func testTheScheduleStillLoadsWithoutColocatedJsonDayView()`
-  in `Tests/KCNA26CoreTests/Schedule/ColocatedRepositoryTests+Schedule.swift` (an `extension
-  ColocatedRepositoryTests`), looping over `Self.colocatedJsonFailures()` with
-  `Self.loadWith(text)`.
-
 ## Known platform differences (documented, deliberate)
 
 - Lone UTF-16 surrogates (in JSON `\uD800` escapes) become U+FFFD: Swift strings can't hold them.
@@ -356,3 +344,151 @@ The SwiftUI layer builds `Color`s from these; it should not hard-code hex values
 - `lowercased()` does not apply Java's final-sigma rule (`"ΟΔΟΣ"` -> "οδοσ", Java "οδος").
 - `UserDefaultsStore` reads an `Int` written value with `int64(forKey:)` and vice versa
   (Android throws ClassCastException); see KeyValueStore.
+
+## Area notes
+
+### Schedule + reminder planning
+
+`Schedule/` (ScheduleIndex.swift: the index and its view models; ScheduleLogic, ScheduleRules,
+Colocated, TextMatch) and `Reminders/ReminderPlanner.swift`. All pure, `Sendable`, tested.
+
+```swift
+let idx = ScheduleIndex.of(repo)            // cached per Repository (===); ScheduleIndex(repo) = a fresh one
+idx.prewarmSearch()                          // once, off the main actor (builds the search text)
+idx.dayTabs(now, me) -> [DayTab]             // key, title "Wednesday, Nov 11", label "Today"/"Wed", number, hasMine
+idx.dayView(dayKey, now, me) -> DayView?     // nil for an unknown day key
+idx.banner(dayKey, now, me, searching: false) -> MineBanner?   // next, countdown, soon, live, nextTime, nextWhere, later
+idx.search(query, now, me) -> SearchResults  // count, heading "12 matches", days: [SearchDay(day, sessions: [SessionBlock])]
+idx.cardStatus(s, now) -> CardStatus         // live, liveLabel, progress (Float 0...1; nil for long rows); CardStatus.NotLive
+idx.coloCards(dayKey, now, me) / idx.coloCard(event, now, me) -> ColoCard
+idx.category(s) group(s) isBreak(s) isLong(s) isHidden(s) inColoCard(s) onColoCard(s, now) coloEventOf(s) coloEventsOf(s)
+idx.roomName(code) building(code) categoryLabel(key) isMine(s, me) hasAnthropic(s, me) groupKeyOf(id) sessionsOn(dayKey)
+idx.groups: OrderedMap<String, GroupInfo>    // web SERIES, first-appearance order; idx.coloAgendas; ScheduleIndex.CATEGORY_ORDER
+```
+
+- `DayView`: `day`, `isToday`, `status: DayStatus?` (today only: `onNow`, `nextStart`),
+  `longsTitle`, `longs: [SessionBlock]`, `longsFirst`, `slots: [Slot]`, `upNextBefore` (slot
+  index for the "Up next" line, or -1), `colo: [ColoCard]`, `isEmpty` ("That’s a wrap").
+  Kotlin `view.copy(...)` (GoingLogic) -> the labeled init
+  `DayView(day:isToday:status:longsTitle:longs:longsFirst:slots:upNextBefore:colo:)`.
+- `Slot(dayKey, key, start, blocks)`, `label` "10:15 AM". `Slot.build(dayKey, blocks)` is the
+  half-hour bucketing loop of `dayView` (reuse it for GoingLogic `filterDay`; blocks sorted by start).
+- Kotlin `sealed interface Block` -> `enum Block { case session(SessionBlock), group(GroupBlock) }`
+  with `start`, `category`, `room`, `mine`, `anthropic`, `key` ("s-<id>" / "g-<key>": list
+  identity), `sessionBlock` / `groupBlock` (Kotlin `as?`), `sessions`. `SessionBlock(s, category,
+  mine:, anthropic:)`; `GroupBlock(group, kids)` (kids = unfinished, never empty; `copy(kids =)`
+  -> `GroupBlock(b.group, kept)`).
+- Kotlin `sealed interface ColoLine` -> `enum ColoLine { case starts(Starts), now(Now), next(Next) }`
+  with nested structs (`ColoLine.Now(s, 3, "251AC")`, positional like Kotlin), `line.session`,
+  `asStarts` / `asNow` / `asNext`. `ColoLines.of(event, agenda, now)`;
+  `ColoText.label(line, idx.roomName)`, `text`, `hours`, `hoursParts`, `breakParts`, `SECTION`.
+  `ColoCard` (event, hours, lines, agenda: [ColoItem], mine, anthropic, live, `key`, `holds(id)`)
+  has a labeled memberwise init (Kotlin `card.copy(...)` in GoingLogic `filterColo`).
+- Kotlin `Long` minute counts are `Int` (`ScheduleLogic.minutesLeft`, `countdownLabel`,
+  `ColoLine.Now.minutesLeft`); `liveProgress` is `Float`.
+- `TextMatch.normalize` / `terms` / `matchesAll` (SpeakerPicker): `contains` on UTF-16 units.
+- These are model types, not views: the SwiftUI layer must not declare `DayView`, `Block`,
+  `Slot`, `DayTab`, `MineBanner`, `ColoCard`, … (one module).
+
+Reminders:
+
+```swift
+let plan = ReminderPlanner.plan(repo.sessions, repo.rooms, me, now, going.ids, going.remindMinutes, reminderStore.armed())
+// sorted by triggerAt, then sessionId; PlannedReminder(sessionId, triggerAt, minutesBefore, title, text, kind), .key "id/min"
+ReminderPlanner.specFor(s, me, going, goingMinutes) -> ReminderSpec?   // ReminderSpec(kind, offsets)
+ReminderPlanner.accepts(spec, minutesBefore); minutesLeftToShow(start, minutesBefore, now, spec.offsets) -> Int?
+ReminderPlanner.text(kind, minutes, room); goingText(minutes, room); key(id, m); parseKey(k) -> (sessionId:, minutes:)?
+```
+
+- Kotlin `ReminderKind.MINE` / `GOING` -> `.mine` / `.going` (rawValue "MINE" / "GOING").
+- `requestCode` (Java `hashCode() * 31 + m`) is Android's PendingIntent code, kept for parity;
+  iOS identifies a notification by `PlannedReminder.key` (also what `ReminderStore` stores).
+- App layer (UNUserNotificationCenter): schedule only the soonest entries of the plan (64
+  pending at most), cancel armed keys no longer planned, `setArmed` the scheduled keys;
+  reschedule at launch, on foreground and whenever speakingAs / going / remindMinutes change.
+  iOS shows a notification without running app code, so the Kotlin receiver's fire-time checks
+  (`specFor` + `accepts` + `minutesLeftToShow`) only apply where the app gets control
+  (`willPresent` in the foreground, the next reschedule).
+
+### Geo + indoor routing
+
+```swift
+let router = Router(repo)                       // once per Repository (Kotlin RepositoryScoped); Sendable, immutable
+router.route(.entrance("E200S"), "251AC")       // Route? (nil: OFF / unknown / unroutable room)
+router.route(.room("DE"), code); router.route(.myLocation(fix), code)   // fix: RouteFrom.MyLocation
+router.routeFromSetting(settings.directionsFrom, code, fix); router.resolveFrom(value, fix) -> RouteFrom
+router.myLocation(lat, lng, accuracyM) -> RouteFrom.MyLocation; router.myLocationStart(x, y) -> StartPoint
+router.startEntrances; router.startRooms; router.isRoutable(code); router.isValidFrom(value); router.summary(route)
+Router.FROM_LIVE / DEFAULT_ENTRANCE / NO_FIX_NOTE / ALREADY_HERE; Router.summaryOf(m, dl); aboutSuffix(m); polylineLength(pts)
+FloorReminder.of(room, route)                   // headline, instruction, levelLabel, buildingAndRoom, action, direction, hops
+Geo.toLocal(lat, lng, origin); distance(a, b); bearing(from, to); dir8(b); r10(m) -> Int; round10(m) -> Int64
+Geo.distanceLabel(m, b); hereRadius(acc); isAboutHere(m, acc); trueHeading(mag, decl); arrowDeg(heading, b)
+Geo.norm360(d); shortestTurn(a, b); jsRound(x) -> Int64
+let turns = ArrowRotation(); turns.update(target); turns.ease(target, 0.5); turns.reset(0); turns.value   // class, one owner
+```
+
+- Kotlin sealed types are enums: `RouteFrom.Entrance(key)` -> `.entrance(key)`, `RouteFrom.Room(code)`
+  -> `.room(code)`, `RouteFrom.MyLocation(x, y, acc)` -> `.myLocation(RouteFrom.MyLocation(x, y, acc))`
+  (or `.myLocation(x, y, acc)`); `StartPoint.Inside` / `.Outside` -> `.inside(StartPoint.Inside)` /
+  `.outside(StartPoint.Outside)`, with `node`, `text`, `key` on the enum (`st is StartPoint.Outside`
+  -> `if case .outside(let o) = st`). `StepKind`: `.start .walk .up .down .end` (`wire`,
+  `changesLevel`, `name` = "START"). `Step(kind, text, level)`, `FloorReminder(level, building,
+  roomName, action, direction, hops)` and `Route(steps:points:totalM:levelsChanged:live:start:)`.
+- Distances and bearings: use `Geo.distance` / `Geo.bearing` (or `Geo.javaHypot` / `Geo.javaAtan2`,
+  fdlibm ports bit-identical to the JVM and Android), never Foundation's `hypot` / `atan2` in
+  ported logic: glibc's differ from Java in the last bit for ~10% / ~20% of inputs.
+- Heading (app layer, CoreLocation): see "Heading on iOS" in Geo.swift. In short: keep
+  `headingOrientation` = the interface's device orientation; install an `ObservedDeclination` as
+  `Geo.declinationSource` at start-up and `record(trueHeading:magneticHeading:headingAccuracy:)`
+  every `CLHeading`; turn each reading into a TRUE heading with
+  `Geo.compassTrueHeading(trueHeading:magneticHeading:headingAccuracy:declinationDeg:)` (nil =
+  invalid reading). `CLHeading.trueHeading` already includes the declination: never add it again.
+  `Geo.declinationDeg(lat, lng, altitudeM, epochMillis)` (Kotlin `Geo::declinationDeg`, the
+  DirectionsViewModel default) reads that source and falls back to `Geo.SLC_DECLINATION_DEG`
+  (10.4); the Directions port needs an entry point taking an already-true heading next to
+  Kotlin's `onAzimuth(magneticDeg, …)`.
+
+### Session details (descriptions, Sessionize)
+
+`Details/` (DescriptionFormat, SessionizeMarkdown, SessionizeFetcher, DetailsRepository).
+
+```swift
+let details = DetailsRepository(repo, cacheDir: appSupport.appendingPathComponent("details"))   // one per Repository
+details.warmBundled()                         // off the main thread after the Repository loads (parses details.json)
+details.peekResult(id) -> DetailsResult?      // sync, no I/O: nil = unknown until load; call on open for an instant sheet
+await details.load(id) -> DetailsResult       // never throws; .found(DetailInfo) / .nothing / .unavailable
+details.peek(id) / await details.get(id) -> DetailInfo?
+DetailsRepository.isKubeConId(id); DetailsRepository.FAIL_BACKOFF_MS (Int64, 30 s)
+```
+
+- `DetailsResult`: `.found(DetailInfo)`, `.nothing` (Kotlin `None`, renamed: `.none` clashes with
+  `Optional.none` in a `DetailsResult?`), `.unavailable`; `result.info` = Kotlin `(r as? Found)?.info`.
+  Sheet rule (Kotlin SessionSheet): start from `peekResult`; if it is nil or `.unavailable`, `await load`.
+- `DetailInfo(description:speakers:slidesUrl:link:linkText:source:)`; `Source` `.bundled`,
+  `.summit`, `.diskCache`, `.live` (rawValue "BUNDLED"…). Empty `speakers` = use `Session.speakers`.
+- `DetailsRepository` is a `Sendable` final class (Locked state), not an `@Observable` store: the
+  view keeps the result in `@State`. Disk + network run in `Task.detached`; a fetch keeps running
+  after the sheet closes. Disk cache: `<cacheDir>/<id>.json`, kotlinx-shaped JSON
+  (`{"description":…,"speakers":[{"name":…,"tagline":…}]}`, defaults omitted), written via
+  `<id>.json.tmp` + rename. App layer: pass Application Support (or Caches)/details.
+- `DetailsFetcher` (`func fetch(_ id: String) async throws -> FetchResult`), `ClosureDetailsFetcher { id in … }`,
+  `FetchResult` `.ok(body)` / `.notFound` / `.failed(reason)` (`isFailed`).
+  `SessionizeFetcher()` = URLSession (ephemeral, no cache, 15 s idle timeout, body capped at
+  512 KB, UA "kubecon-schedule-app/1.0 (personal schedule app; iOS)"); `classify(code, contentType, body)`
+  is the pure status/HTML rule. The app needs no entitlement; Sessionize is HTTPS (no ATS exception).
+- `DescriptionFormat.parse(description) -> [Block]`, `inline(s) -> Rich`. Model, exactly Kotlin's:
+  `enum Block { case paragraph(Rich), listBlock([Item]), heading(Rich) }`;
+  `Item(marker, text: Rich, ordered:)` (marker "•" or "1." / "2)" as written: hanging indent);
+  `Rich(text, spans)`; `enum Span { case bold(start, end), italic(start, end), link(start, end, url) }`
+  (`start`, `end`, `url`, `isLink`). Span offsets are UTF-16 units (Kotlin indices), sorted by start,
+  longest first, properly nested (bold may hold a link or italic). For SwiftUI use
+  `rich.runs` -> `[Run(text, bold, italic, url)]` (text cut at every span boundary; concatenate
+  one `AttributedString` per run: bold/italic via font or `inlinePresentationIntent`, links via
+  `.link = URL(string:)` and the theme's link colour), or `rich.stringRange(span)` for a
+  `Range<String.Index>`. Headings render as bold paragraphs; `\n` inside a paragraph is a line break.
+- `SessionizeMarkdown.parse(md) -> SessionDetail` (= details.json entry), `pyStrip(_:)`.
+- Regexes are ICU (as on Android devices): `\S` / `\d` are Unicode-aware, where the desktop JVM
+  running the Kotlin unit tests is ASCII-only. A differential run of the Kotlin code (with `(?U)`,
+  i.e. Android semantics) against the Swift port over 50k fuzzed + all 820 bundled descriptions
+  and 30k fuzzed Sessionize pages gave identical output. `isKubeConId` uses `[0-9]{1,12}` (ASCII,
+  the JVM behaviour) on purpose: the id goes into a URL and a file name.
