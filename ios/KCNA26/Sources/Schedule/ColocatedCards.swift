@@ -248,6 +248,7 @@ struct ColoAgendaCard: View {
                 panelHeading(e)
             }
             // Rows: inset 8 pt less than the text so mine/Anthropic rows can bleed out (as in group cards).
+            // The rule is drawn inside the padding (Kotlin `padding(...).drawBehind`), along the rows' top edge.
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(rows, id: \.item.session.id) { row in
                     if let breakText = row.breakText {
@@ -257,12 +258,12 @@ struct ColoAgendaCard: View {
                     }
                 }
             }
-            .padding(.leading, CGFloat(Dimens.categoryStripe) + 4)
-            .padding(.trailing, 4)
-            .padding(.top, attached ? 0 : 2)
             .background(alignment: .top) {
                 KidListRule()
             }
+            .padding(.leading, CGFloat(Dimens.categoryStripe) + 4)
+            .padding(.trailing, 4)
+            .padding(.top, attached ? 0 : 2)
             if let footer = ColocatedCardsLogic.footer(e) {
                 ColoFooter(footer: footer)
             }

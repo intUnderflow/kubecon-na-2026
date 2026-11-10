@@ -312,17 +312,19 @@ struct GroupCard: View {
                 .padding(.leading, textLeading)
                 .padding(.trailing, 12)
             // Kids: inset 8 pt less than the text so mine/Anthropic rows can bleed out (web margin: 0 -8px).
+            // The rule is drawn inside the padding (Kotlin `padding(...).drawBehind`): along the
+            // kids' top edge, 8 pt in from the kid list's own edges.
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(m.kids, id: \.session.id) { kid in
                     KidRow(model: kid, me: me, index: index, onOpen: onOpen, onRevealed: onRevealed, onToggleGoing: onToggleGoing)
                 }
             }
-            .padding(.leading, CGFloat(Dimens.categoryStripe) + 4)
-            .padding(.trailing, 4)
-            .padding(.top, 8)
             .background(alignment: .top) {
                 KidListRule()
             }
+            .padding(.leading, CGFloat(Dimens.categoryStripe) + 4)
+            .padding(.trailing, 4)
+            .padding(.top, 8)
             if let label = m.showAllLabel {
                 showAllButton(label)
                     .padding(.leading, textLeading)

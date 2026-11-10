@@ -18,19 +18,25 @@ struct NowTickingModifier: ViewModifier {
     let clock: any AppClock
 
     @Environment(\.scenePhase) private var scenePhase
+    /// Between onAppear and onDisappear. A view that stays alive off screen (the Schedule under
+    /// a pushed Settings or Directions screen) must not start ticking again when the app comes
+    /// back to the foreground (Kotlin: that back-stack entry is no longer STARTED).
+    @State private var onScreen = false
 
     func body(content: Content) -> some View {
         content
             .onAppear {
+                onScreen = true
                 start(scenePhase)
             }
             .onDisappear {
+                onScreen = false
                 ticker?.pause()
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .background {
                     ticker?.pause()
-                } else {
+                } else if onScreen {
                     start(phase)
                 }
             }
