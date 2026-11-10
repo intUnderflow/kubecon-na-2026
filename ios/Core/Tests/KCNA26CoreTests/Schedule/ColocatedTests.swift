@@ -379,11 +379,3 @@ final class ColocatedTests: XCTestCase {
 private extension DayView {
     func blockSessions() -> [Session] { slots.flatMap { sl in sl.blocks.flatMap(\.sessions) } }
 }
-
-private extension Array {
-    /// Kotlin `single { }`: the one element matching; throws (failing the test) otherwise.
-    func singleMatch(file: StaticString = #filePath, line: UInt = #line, _ predicate: (Element) -> Bool) throws -> Element {
-        let xs = filter(predicate)
-        return try XCTUnwrap(xs.count == 1 ? xs[0] : nil, "single: \(xs.count) matches", file: file, line: line)
-    }
-}

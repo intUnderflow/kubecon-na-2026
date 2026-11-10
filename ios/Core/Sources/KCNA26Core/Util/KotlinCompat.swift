@@ -126,11 +126,11 @@ extension KComparator where T: KComparable {
 
 extension KComparator where T == String {
     /// `String.CASE_INSENSITIVE_ORDER` (see ``javaCaseInsensitiveCompare(_:_:)``).
-    static var caseInsensitiveOrder: KComparator<String> { KComparator(javaCaseInsensitiveCompare) }
+    static var caseInsensitiveOrder: KComparator<String> { KComparator { javaCaseInsensitiveCompare($0, $1) } }
 
     /// Kotlin `naturalOrder<String>()` / `String.compareTo`: UTF-16 code-unit order (the same
     /// as ``naturalOrder``).
-    static var javaOrder: KComparator<String> { KComparator(javaCompare) }
+    static var javaOrder: KComparator<String> { KComparator { javaCompare($0, $1) } }
 }
 
 /// Kotlin `compareBy { key }` as a free function.

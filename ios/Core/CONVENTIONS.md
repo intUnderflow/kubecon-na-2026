@@ -22,6 +22,11 @@ swift test --filter RepositoryTests               # one class
   `Session.EVENT_COLOCATED` (`static let`; `nonisolated static let` inside `@MainActor` types).
 - Kotlin `fun` taking positional args -> Swift funcs with unlabeled params where Kotlin callers
   pass positionally (`repo.session(id)`, `isMine(s, me)`, `GoingStore(prefs)`).
+- **Warning-free in both language modes.** The package builds in Swift 6 mode, the Xcode app
+  target compiles the same sources in Swift 5 mode, which warns where Swift 6 doesn't: e.g. a
+  global function passed where a `@Sendable` closure is expected (`KComparator(javaCompare)`)
+  -> wrap it in a closure literal (`KComparator { javaCompare($0, $1) }`). Check with
+  `swiftc -typecheck -swift-version 5 $(find Sources/KCNA26Core -name '*.swift')`.
 
 ## Kotlin -> Swift mapping decisions
 
@@ -238,8 +243,8 @@ Both stores tell String, string set, Bool, integer and floating-point values apa
 not 1, 2.75 is not 2). `UserDefaultsStore` cannot tell `Int` from `Int64` (one plist integer
 type), so there `int` and `int64` both read any integer; `InMemoryStore` (tests) is strict, so
 read with the type that was written and the tests catch a mismatch.
-PREFS names: "kcna26.settings", "kcna26.going", "kcna26.reminders", "kcna26.debug" (and the
-Sync port's own). No change listeners (no Kotlin main code registers one).
+PREFS names: "kcna26.settings", "kcna26.going", "kcna26.reminders", "kcna26.debug",
+"kcna26.sync" (`DataSync.PREFS`). No change listeners (no Kotlin main code registers one).
 
 ### SHA256 (Util/SHA256.swift)
 
@@ -324,6 +329,9 @@ The SwiftUI layer builds `Color`s from these; it should not hard-code hex values
   route/golden/), `vectors` (typed test_vectors.json), `text(name)`, `data(name)`,
   `json(name)`, `url(name)`, `clockAt(iso)`, `instant(iso)`, `lines(url)`, `crc32Hex(_:)`
   (java.util.zip.CRC32).
+- `TestHelpers.swift`: shared helpers for Kotlin test idioms, e.g. `xs.singleMatch { … }`
+  (Kotlin `single { }`; throws, failing the test, unless exactly one matches). Use them; don't
+  declare a private copy in a test file (that is an "invalid redeclaration" of the shared one).
 - Tests of `@MainActor` types: mark the test class `@MainActor`. Async waits: poll with
   `Task.sleep`, never fixed long sleeps.
 - `InMemoryStore()` replaces `InMemoryPrefs()`; `TestData.instant(iso)` replaces
@@ -403,17 +411,20 @@ ReminderPlanner.text(kind, minutes, room); goingText(minutes, room); key(id, m);
 - Kotlin `ReminderKind.MINE` / `GOING` -> `.mine` / `.going` (rawValue "MINE" / "GOING").
 - `requestCode` (Java `hashCode() * 31 + m`) is Android's PendingIntent code, kept for parity;
   iOS identifies a notification by `PlannedReminder.key` (also what `ReminderStore` stores).
-- App layer (UNUserNotificationCenter): schedule only the soonest entries of the plan (64
-  pending at most), cancel armed keys no longer planned, `setArmed` the scheduled keys;
-  reschedule at launch, on foreground and whenever speakingAs / going / remindMinutes change.
-  iOS shows a notification without running app code, so the Kotlin receiver's fire-time checks
-  (`specFor` + `accepts` + `minutesLeftToShow`) only apply where the app gets control
-  (`willPresent` in the foreground, the next reschedule).
+- Scheduling on iOS (UNUserNotificationCenter) is Core's `ReminderScheduler`
+  (Reminders/ReminderScheduling.swift, driven by `AppGraph`; see "App graph, navigation and
+  reminder scheduling"): only the soonest `MAX_PENDING` (60; iOS keeps 64) entries of the plan,
+  cancel armed keys no longer planned, `setArmed` the scheduled keys; re-planned at launch, on
+  foreground and whenever speakingAs / going / remindMinutes change. The app layer only
+  implements `ReminderScheduling`. iOS shows a notification without running app code, so the
+  Kotlin receiver's fire-time checks (`specFor` + `accepts` + `minutesLeftToShow`, i.e.
+  `ReminderFiring.check`) only apply where the app gets control (`willPresent` in the
+  foreground via `graph.reminderFiring`, the next reschedule).
 
 ### Geo + indoor routing
 
 ```swift
-let router = Router(repo)                       // once per Repository (Kotlin RepositoryScoped); Sendable, immutable
+let router = Router(repo)                       // once per Repository: graph.router (RepositoryScoped { Router($0) }, Sync/); Sendable, immutable
 router.route(.entrance("E200S"), "251AC")       // Route? (nil: OFF / unknown / unroutable room)
 router.route(.room("DE"), code); router.route(.myLocation(fix), code)   // fix: RouteFrom.MyLocation
 router.routeFromSetting(settings.directionsFrom, code, fix); router.resolveFrom(value, fix) -> RouteFrom
@@ -453,7 +464,7 @@ let turns = ArrowRotation(); turns.update(target); turns.ease(target, 0.5); turn
 `Details/` (DescriptionFormat, SessionizeMarkdown, SessionizeFetcher, DetailsRepository).
 
 ```swift
-let details = DetailsRepository(repo, cacheDir: appSupport.appendingPathComponent("details"))   // one per Repository
+let details = DetailsRepository(repo, cacheDir: appSupport.appendingPathComponent("details"))   // one per Repository (RepositoryScoped, Sync/)
 details.warmBundled()                         // off the main thread after the Repository loads (parses details.json)
 details.peekResult(id) -> DetailsResult?      // sync, no I/O: nil = unknown until load; call on open for an instant sheet
 await details.load(id) -> DetailsResult       // never throws; .found(DetailInfo) / .nothing / .unavailable
@@ -470,13 +481,16 @@ DetailsRepository.isKubeConId(id); DetailsRepository.FAIL_BACKOFF_MS (Int64, 30 
   view keeps the result in `@State`. Disk + network run in `Task.detached`; a fetch keeps running
   after the sheet closes. Disk cache: `<cacheDir>/<id>.json`, kotlinx-shaped JSON
   (`{"description":…,"speakers":[{"name":…,"tagline":…}]}`, defaults omitted), written via
-  `<id>.json.tmp` + rename. App layer: pass Application Support (or Caches)/details.
+  `<id>.json.tmp` + rename. `AppGraph` makes one per Repository with cacheDir
+  `<Application Support>/details` (`graph.details`).
 - `DetailsFetcher` (`func fetch(_ id: String) async throws -> FetchResult`), `ClosureDetailsFetcher { id in … }`,
   `FetchResult` `.ok(body)` / `.notFound` / `.failed(reason)` (`isFailed`).
   `SessionizeFetcher()` = URLSession (ephemeral, no cache, 15 s idle timeout, body capped at
   512 KB, UA "kubecon-schedule-app/1.0 (personal schedule app; iOS)"); `classify(code, contentType, body)`
   is the pure status/HTML rule. The app needs no entitlement; Sessionize is HTTPS (no ATS exception).
-- `DescriptionFormat.parse(description) -> [Block]`, `inline(s) -> Rich`. Model, exactly Kotlin's:
+- `DescriptionFormat.parse(description) -> [Block]`, `inline(s) -> Rich`. Model, exactly Kotlin's,
+  nested in `DescriptionFormat` as in Kotlin (`DescriptionFormat.Block`, `.Rich`, `.Span`, `.Item`,
+  `.Run`; outside the enum a bare `Block` is the schedule's `Block`):
   `enum Block { case paragraph(Rich), listBlock([Item]), heading(Rich) }`;
   `Item(marker, text: Rich, ordered:)` (marker "•" or "1." / "2)" as written: hanging indent);
   `Rich(text, spans)`; `enum Span { case bold(start, end), italic(start, end), link(start, end, url) }`
@@ -492,3 +506,259 @@ DetailsRepository.isKubeConId(id); DetailsRepository.FAIL_BACKOFF_MS (Int64, 30 
   i.e. Android semantics) against the Swift port over 50k fuzzed + all 820 bundled descriptions
   and 30k fuzzed Sessionize pages gave identical output. `isKubeConId` uses `[0-9]{1,12}` (ASCII,
   the JVM behaviour) on purpose: the id goes into a URL and a file name.
+
+### Live data sync
+
+`Sync/` (DataManifest, DataValidator, DataFetcher, DataSync, RepositoryScoped). One `DataSync`
+per process: `AppGraph` builds and owns it (`graph.dataSync`), and its `onForeground()` /
+`onBackground()` call the ones below, so the app layer calls the graph's, never these as well.
+The API:
+
+```swift
+let sync = DataSync(
+    root: appSupport.appendingPathComponent("data", isDirectory: true),   // Android filesDir/data
+    bundled: DataSync.bundledOpener(),               // reads the bundle's "Data/<name>"
+    fetcher: HttpDataFetcher(),
+    prefs: UserDefaultsStore(suiteName: DataSync.PREFS),   // "kcna26.sync"
+    baseUrl: DataSync.baseUrl(),                     // Info.plist KCNA26DataBaseURL, else DEFAULT_BASE_URL
+    onSwapped: { next in /* background thread: hop to main, publish next.repository, warm details, reschedule reminders */ },
+    appVersion: DataSync.appVersion())               // CFBundleVersion (Android VERSION_CODE)
+let active = try sync.loadActive()     // blocking (Task.detached at launch); bundled or a valid newer download
+sync.active; sync.status               // thread-safe + Observable (Kotlin StateFlows); change on background threads
+sync.onForeground()                    // EVERY scenePhase .active (launch too): re-arms the crash marker, checks if due (15 min)
+sync.onBackground()                    // scenePhase .inactive AND .background, and willTerminateNotification
+sync.checkInBackground()               // Settings "Check now" (nil while status.checking)
+await sync.check() -> SyncOutcome      // one check, serialized, @concurrent, never throws
+let routers = RepositoryScoped { Router($0) }; routers[repo]   // one value per Repository (===)
+```
+
+- `ActiveData` (class, identity): `repository`, `manifest`, `source` (`.bundled` / `.github`,
+  rawValue "BUNDLED"/"GITHUB"), `version`, `updatedAt: Date?`, `dir`.
+- `SyncOutcome`: `.updated(version)`, `.notModified`, `.notNewer(remoteVersion)`,
+  `.failed(reason)`, `.rejected(reason)`; `reason`; `description` = Kotlin `toString()`.
+  DataSourceText: `status.last is Updated` -> `if case .updated? = status.last`; `NotModified ||
+  NotNewer` -> "Up to date"; failures show nothing. `SyncStatus(checking:last:lastCheckedAt:)`
+  (`lastCheckedAt` is wall clock).
+- Crash guard (Android: uncaught-exception handler): a launch marker file `root/.running` is
+  written while the app is in the foreground with a downloaded set on probation and deleted by
+  `onBackground()`; a marker left at the next launch counts as a crash (Kotlin's `onCrash`
+  rules, dated by the marker). The app MUST call `onBackground()` whenever it leaves `.active`,
+  or every exit during probation counts as a crash (2 = rollback to the bundled data).
+  `installCrashGuard()` (once per process) is optional: `loadActive`/`onForeground`/`onBackground`
+  run it first. Use the App-level `scenePhase` (aggregate of all scenes).
+- `DataFetcher` = `get(_:ifNoneMatch:maxBytes:) async -> HttpResult` (`.ok(body:etag:)`,
+  `.notModified`, `.failed(reason)`); tests use a fake, never the network. `HttpDataFetcher`:
+  ephemeral URLSession, no cache, If-None-Match set by hand (a 304 reaches the code), 10 s idle
+  timeout + 15 s headers deadline, body capped at maxBytes + 1, UA "kcna26-ios/<version> (+…)".
+- `DataManifest.parse(data)`, `problems(required)`, `isSafeName`, `sha256`, `updatedInstant`;
+  `DataValidator.problems(repo, includeDetails:files:) throws -> [String]` (≤ 20, Kotlin's messages).
+
+### RSVP logic and notification permission
+
+`Going/GoingLogic.swift` (`GoingLogic`, `Clash`, `GoingNext`, `GoingText`) and
+`Going/NotificationAsk.swift`. All `GoingLogic` functions take Kotlin's positional arguments.
+
+```swift
+GoingLogic.keeps(s, going.ids, me)                              // the RSVP'd filter
+GoingLogic.filterDay(view, now) { GoingLogic.keeps($0, ids, me) } -> DayView     // also filterColo(card, now, keep)
+GoingLogic.filterSearch(results) { … } -> SearchResults
+GoingLogic.emptyText(goingOnly, fullView, view, allResults, results, idx, ids, now, remindMinutes) -> (title: String, text: String)?
+GoingLogic.starredLeftByDay(idx, ids, now) -> [(dayKey: String, count: Int)]
+GoingLogic.clashes(idx, ids, me, now) -> [String: [Clash]]      // now: Date? = nil keeps finished ones; clashesFor(idx, s, ids, me, now)
+GoingLogic.upNext(idx, dayKey, ids, me, now) -> GoingNext?      // session, live, label, countdown, time, roomName, level, canRoute
+GoingLogic.countdown(minutes) /* "in 12 min" */; GoingLogic.overlaps(a, b); GoingLogic.SOON_MINUTES (Int)
+GoingText.CHIP / MARK / NOTIFICATIONS_OFF / TURN_ON / …; starDescription(going, title); noneText(m); othersText([(1, "Wednesday")]); optionLabel(m); settingSummary(m, me)
+```
+
+- Kotlin `Pair`s are labeled tuples (`note.title` / `note.text`, `let (title, text) = note`).
+  `Clash(session, mine:)`; `GoingNext` has a labeled memberwise init.
+- Notification permission (Android POST_NOTIFICATIONS -> `UNUserNotificationCenter`). Core sees
+  `NotificationAsk.Authorization` (`.notDetermined .denied .authorized .provisional .ephemeral`;
+  map `@unknown default` to `.authorized`); the app provides a `NotificationPermission`
+  (`func status() async -> NotificationAsk.Authorization`, `func request() async -> Bool` =
+  `requestAuthorization`). No channels and no exact-alarm permission on iOS.
+- The ask in context (Kotlin MainActivity + `NotificationAsk.watch`) is wired by `AppGraph`
+  (App/AppGraph.swift), not by the views: `graph.onForeground()` starts
+  `NotificationAsk.triggers(settings, going) { graph.askForNotificationsOnce() }` and, once per
+  activation, asks if `NotificationAsk.remindersWaiting(await permission.status(), settings,
+  going, repo, clock.now())`; `graph.onBackground()` cancels both. `askForNotificationsOnce()`
+  = `NotificationAsk.askOnce(settings, permission)` (at most once,
+  `settings.notificationPermissionAsked`; sets `NotificationAsk.asking` while the dialog is up),
+  then re-plans the reminders if granted. The app layer only provides the `NotificationPermission`.
+- The hint (Kotlin `NotificationsOffHint`; text via `GoingUiLogic.notificationsOffText`):
+  `NotificationAsk.blocked(await graph.notificationPermission.status(), settings)` -> `.app`
+  shows `GoingText.NOTIFICATIONS_OFF` + "Turn on"; `.nothing` shows nothing (`.channel` never
+  happens on iOS). Re-read the status on every `.active` and when `NotificationAsk.asking`
+  changes. "Turn on": `NotificationAsk.turnOn(status)` -> `.requestAuthorization`
+  (`await graph.requestNotificationsNow()`: `askNow` + re-plan) or `.openSettings`
+  (`UIApplication.openNotificationSettingsURLString`, fallback `openSettingsURLString`).
+- `TriggerWatch` uses `withObservationTracking`; every store value is seen (also several changes
+  in one main-actor turn); the last change arrives on the next main-actor turn (`flush()` delivers
+  it at once, for tests).
+
+### Directions logic (UI-independent parts)
+
+`UILogic/Directions/` (CompassMath, DirectionsLogic, FromMenu, MapGeometry, MapFraming,
+MapCameraState, DirectionsViewModel, DirectionsScheduler, CompassSensor, LocationTracker, SvgPath).
+
+```swift
+let vm = DirectionsViewModel(repo: graph.repository, router: graph.router, settings: graph.settings, clock: graph.clock, sessionId: id,
+                             log: { logger.debug("\($0)") })        // @MainActor @Observable; keep in the screen's @State
+vm.session; vm.room; vm.target (PointXY? nil = OFF/unknown: no live map); vm.options (FromOptions)
+vm.plan        // RoutePlan?(from, route, summary, showFallbackNote, startKey); re-routes only when planKey changes
+vm.fix; vm.noFix; vm.deviceLocationOff; vm.heading (smoothed TRUE heading, nil = hide cone); vm.calibrate; vm.directionsFrom
+vm.setFrom(key)                              // then camera.refit()
+vm.trackingStarted() / trackingStopped()     // around start/stopUpdatingLocation
+vm.onLocation(LocationReading(latitude:longitude:horizontalAccuracy:altitude:verticalAccuracy:ageSeconds:))  // locations.last
+vm.onLocationFailure()                       // CLError.denied
+vm.setDeviceLocationOff(!CLLocationManager.locationServicesEnabled())
+vm.onHeading(trueHeading:magneticHeading:headingAccuracy:timeMs:)   // every CLHeading (after ObservedDeclination.record)
+let status = LocationTracker.locStatus(.authorized /* .notDetermined .denied */, deviceLocationOff: vm.deviceLocationOff, noFix: vm.noFix)
+let readout = DirectionsLogic.readout(target, level, vm.fix, status)   // headline, distance, direction, accuracy, detail, weakGps, here, line, hasFix
+FloorReminder.of(room, vm.plan?.route)
+let menu = vm.options.menu(posWhenOpened)    // FromMenu(live, sections: [FromMenuSection(title, items)], byDistance); item.key/option/distance/level
+vm.options.label(key); FromKind .live .entrance .room; DirectionsText.* (all screen strings)
+```
+
+Map (SwiftUI `Canvas`; everything in Double, map units = metres with y south, sizes in points):
+
+```swift
+MapGeometry.toMap(p) / svgX / svgY; staticRoute(points, live:); accuracyRadius(acc); levelText(l)
+MapGeometry.streetLabels / zoneLabel(zone) / hyattLabel   // Label(text, x, y, anchor .start/.middle/.end, rotateDeg)
+SvgPath.parse(MapGeometry.CONE_PATH) -> [.move(p) | .line(p) | .cubic(c1, c2, p) | .close]   // also ROSE_PATH, ICON_*
+@State var cam = MapCameraState()            // Saver.save(cam) -> String / Saver.restore(s) for @SceneStorage
+cam.frame(w, h, route, dest, me)             // on appear + when size/route/dest change; cam.updateMe(me); cam.stopFraming()
+cam.onGesture(w, h, centroid, pan, zoom, route, dest, me)   // per-step deltas (zoom = mag/lastMag, pan = Δtranslation)
+cam.refit(); cam.follow; cam.isAnimating     // TimelineView(.animation(paused: !cam.isAnimating)) { … cam.camera … }
+cam.camera?.screenX(u, w) / screenY(v, h) / z; MapFraming.labelOnLeft(pinX:width:gap:labelWidth:); MapFraming.PADDING
+```
+
+- Kotlin -> Swift: Compose `Float`/`Offset`/`Rect` -> `Double`/`MapOffset`/`MapRect`; StateFlows ->
+  observable properties (`plan` is computed, cached by `RoutePlanner.planKey`); `viewModelScope`
+  delays -> `DirectionsScheduler` (`TaskDirectionsScheduler` by default; tests use
+  `VirtualDirectionsScheduler`, in DirectionsViewModelTests.swift, = `advanceTimeBy`/`runCurrent`);
+  Compose's camera animation -> `MapCameraAnimation` (650 ms FastOutSlowIn, log zoom) read
+  through `cam.camera` at the current monotonic time. `LocStatus` `.searching .noFix
+  .permissionDenied .deviceOff`; `LocStatus.of(...)` is the screen's `when`.
+- iOS strings: `LOCATION_OFF_SUB` / `DEVICE_OFF_SUB` say "in Settings" (Kotlin "in Android Settings").
+- Platform hooks (app layer): CLLocationManager wiring is documented on `LocationTracker` and
+  `CompassSensor` (headingOrientation = `CompassSensor.headingOrientation(interfaceOrientationRawValue:)`,
+  `locationManagerShouldDisplayHeadingCalibration` -> false, heading accuracy -> `Calibration`
+  via `CompassSensor.accuracyStatus`). Kotlin's rotation-vector entry points (`onAzimuth`,
+  `onSensorAccuracy`, `CompassMath`) are kept and tested but unused on iOS.
+
+### Schedule, session, settings and RSVP UI logic
+
+`UILogic/Schedule/`, `UILogic/Session/`, `UILogic/Settings/`, `UILogic/Going/`,
+`UILogic/Adaptive/`: everything pure in Kotlin `ui/schedule`, `ui/session`, `ui/settings`,
+`ui/going/GoingUi.kt` and `ui/adaptive`, so the SwiftUI views only lay out. File names never
+equal a Kotlin UI file name (the app's view ports use those names, and file names must be
+unique in the one module): the pure part of a Compose file `X.kt` is `XLogic.swift` (enum
+`XLogic`), helpers named after the composable they come from (`sessionCard…`, `groupCard…`).
+
+| Kotlin | Core file: types |
+|---|---|
+| ui/schedule/ScheduleRows.kt | ScheduleRows.swift: `ScheduleRow` (Kotlin `Row`), `ScheduleRows` |
+| ui/schedule/ScheduleScreen.kt | ScheduleScreenLogic.swift: `state`, `State.rows`, `listLayout`, `onTalk`, `toggleColo`, `unstarredAfterToggle`, `keepGoing`, `jumpTarget`/`jumpFallback`, `hideColoScrollTarget`, `Jump`, `JUMP_WAIT_MS`, `STICKY_HEADING_HEIGHT` |
+| ui/schedule/ScheduleCards.kt | ScheduleCardsLogic.swift: `sessionCard` -> `SessionCardModel`, `sessionCardColors`, `groupCard` -> `GroupCardModel` (`kids: [KidRowModel]`), `KidPill`, `breakRow`, `GROUP_COLLAPSE_OVER`/`GROUP_COLLAPSED_SHOWS` |
+| ui/schedule/ColocatedCards.kt | ColocatedCardsLogic.swift: `cardRow` -> `ColoTile`s, `roomLine`, `hoursPieces`, `lineText`, `lineMaxLines`, `agendaRows` -> `AgendaRow`, `footer`, strings |
+| ui/schedule/ScheduleHeader.kt | ScheduleHeaderLogic.swift: `BRAND`, `dayTabDescription`, `dayTabsCurrent`, `dayStatusLine`, strings |
+| ui/schedule/ScheduleParts.kt | nothing (the app's Components have `speakersLine`, `ScheduleFooter`, …) |
+| (colours, spans) | StyleRoles.swift: `PaletteRole` (which theme colour; `role.argb(in: palette)`, incl. GoingUi.kt's `going*`/`clash*`), `TextRun` (an AnnotatedString span) |
+| ui/session/SessionText.kt | SessionText.swift: `SessionText`, `SessionText.SpeakerRow` |
+| ui/session/SessionSheet.kt, SessionDetailsParts.kt | SessionDetailsLogic.swift: `needsLoad`, `meta`, `coloInfo`, `pills`, `gettingThere`, `about` -> `About`, `links`, `directionsBar`, `speakerColor`, `markerWidth` |
+| ui/session/DetailsScrollCarry.kt | DetailsScrollCarryLogic.swift: `DetailsScrollCarry` (`@MainActor`: `put(id, offset)` / `take(id)`) |
+| ui/settings/SpeakerPicker.kt | SpeakerPicker.swift: `SpeakerOption`, `SpeakerPicker` |
+| ui/settings/DataSourceRow.kt | DataSourceText.swift: `DataSourceText` (+ `HEADING`, `CHECK_NOW`) |
+| ui/settings/SettingsScreen.kt, FirstRunSheet.kt | SettingsScreenLogic.swift, FirstRunSheetLogic.swift |
+| ui/going/GoingUi.kt | GoingUiLogic.swift: `starTint`, `chipColors`, `goingNextWhere`, `showsToggle`, `toggleLabel`, `clashNote` -> `[ClashLine]`, `reminderHint`, `notificationsOffText`, `reminderSettingChannel`, `STAR_RESERVE` |
+| ui/adaptive/WidthClass.kt | WidthClassRule.swift: `WidthClass` (`.compact` / `.medium` / `.expanded`, `isWide`, `fromWidth(_:)`); the app's Theme/WidthClass.swift keeps only the SwiftUI part (`\.widthClass`, `\.windowWidth`, `.readsWindowWidth()`) |
+
+```swift
+let st = ScheduleScreenLogic.state(index, ticker.now, me, selectedDay: day, query: ScheduleScreenLogic.query(text),
+                                   goingOnly: on, goingIds: going.ids, unstarred: unstarred, remindMinutes: going.remindMinutes)
+let layout = ScheduleScreenLogic.listLayout(width, twoPane: twoPane, wideWindow: widthClass.isWide)  // side, roomy, large, coloColumns
+let rows = st.rows(layout.coloColumns, coloOpen)        // [ScheduleRow]: ForEach(rows, id: \.key); row.sticky = a pinned section header
+switch row { case .item(let block, let inSearch): …; case .empty(let e): EmptyState(title: e.title, text: e.text); … }
+ScheduleRows.build(view, banner, results, columns, open, goingNext: next, empty: ScheduleRow.Empty(title, text))
+ScheduleRows.indexOfSession(rows, id) / jumpIndex(rows, id, agenda) / revealsAfterJump(row, id, open) / indexOfColoCard(rows, key)
+ScheduleCardsLogic.sessionCard(block, index.cardStatus(s, st.minute), index, going: g, clash: c)    // texts + colours
+ScheduleCardsLogic.groupCard(block, st.minute, me, index, expanded:, selectedId:, revealId:, goingIds:, clashIds:)
+ColocatedCardsLogic.cardRow(cards, columns, open); agendaRows(card, index, selectedId:, revealId:, goingIds:, clashIds:)
+SessionDetailsLogic.about(result, showLoading:); links(s, SessionText.officialUrl(repo, s), result?.info)
+SpeakerPicker.options(repo); SettingsScreenLogic.shown(options, text); DataSourceText.source(a.source, sync.status, Date())
+GoingUiLogic.clashNote(index, s, going.ids, me, minute); reminderHint(s, me, going.ids, going.remindMinutes, now)
+Color(argb: role.argb(in: colors.palette))              // PaletteRole -> Color
+// [TextRun] -> Text + Text: Text(verbatim: run.text).appFont(run.bold ? style.bold : style), plus
+//   .foregroundStyle(Color(argb: role.argb(in: colors.palette))) when run.role != nil (nil = the line's colour)
+```
+
+- Kotlin `Row` -> `ScheduleRow` (`Row` is too generic in one module); `Row.Empty(title, text)` ->
+  `ScheduleRow.Empty(title, text)` (`.empty(e)`); `is Row.X` -> `if case .x = row`; `Row.Item(b, inSearch)` -> `.item(b, inSearch:)`.
+- Widths are points (Kotlin dp), `Double`: `ScheduleRows.coloColumns(contentWidth)`, `WidthClass.fromWidth(windowWidth)`.
+- `DataSourceText.source(...)` takes the WALL clock (`Date()`), like `SyncStatus.lastCheckedAt`.
+- `ScheduleScreenLogic.State` is the whole Kotlin `remember` chain at one minute (`now` is
+  truncated); recompute it when an input changes. `unstarred` resets when `goingOnly` or the day changes.
+- `DetailsScrollCarry`: on iOS the swap happens when the width class changes (the details move
+  between the sheet and the list–detail pane); one per scene.
+
+### App graph, navigation and reminder scheduling
+
+`App/` (AppGraph.swift = Kotlin AppGraph + KcnaApp; AppServices.swift; MainActivityLogic.swift),
+`Nav/` (NavViewModel.swift: `Screen`, `NavModel`; AppNavLogic.swift: AppNav.kt's rules),
+`Reminders/ReminderScheduling.swift` (`ReminderScheduling`, `ReminderRequest`, `DeliveredReminder`,
+`ReminderScheduler`) and `Reminders/ReminderContent.swift` (`ReminderContent`, `ReminderFiring`).
+These names are taken: the app layer must not declare them (call its UNUserNotificationCenter
+types e.g. `NotificationCenterReminders` / `NotificationCenterPermission`, its shell views
+`AppNav` / `RootView`).
+
+```swift
+extension AppGraph {   // app layer, once per process (main actor)
+    static let shared = AppGraph.live(reminders: NotificationCenterReminders(), notificationPermission: NotificationCenterPermission())
+}
+graph.start(arguments: ProcessInfo.processInfo.arguments)  // App.init: data load off main, -fakeNow (debug), reminder watches, first reschedule
+graph.onForeground()   // App-level scenePhase .active (initial: true): DataSync.onForeground, reschedule, permission ask in context
+graph.onBackground()   // every other phase + willTerminateNotification: DataSync.onBackground (crash guard), stop the ask triggers
+graph.rootState        // .loading (plain bg) / .ready (AppNav + first-run sheet if graph.showsFirstRunSheet) / .failed(text)
+graph.repository; graph.isRepositoryLoaded; try await graph.awaitRepository(); graph.details; graph.router   // per repository
+graph.clock; graph.fakeableClock; graph.settings; graph.going; graph.dataSync; graph.reminderStore
+graph.reminders.reschedule(); await graph.reminders.rescheduleNow(); await graph.reminders.settle()          // rarely needed: wired
+graph.notificationTapped(sessionId:); graph.pendingDirectionsSessionId; graph.routePendingDirections(to: nav)
+await graph.reminderFiring(sessionId:minutesBefore:)   // willPresent: .show(...) -> [.banner, .list, .sound], else []
+graph.notificationPermission; await graph.requestNotificationsNow()   // the off-hint's "Turn on" when NotificationAsk.turnOn == .requestAuthorization
+
+let nav = NavModel(restoring: .init(stack: savedStack, session: savedSession))   // per scene; mirror nav.saved into @SceneStorage
+nav.stack / current / path (NavigationStack(path:), settable) / openSessionId; push, pop, openSession, closeSession,
+nav.openSettings(), openDirections(id), openDirectionsFromNotification(id); NavModel(InMemoryStore()) in tests/previews
+Screen.schedule / .settings / .directions(id); screen.key ("directions:<id>"); Screen.decode(key) (nil for "unconf" etc.)
+AppNavLogic.listPaneWidth(w); shownSession(id, repo); dropsStaleSession(id, repo) -> nav.closeSession();
+AppNavLogic.detailsPlacement(wide:shownSession:) -> .sheet / .pane / .emptyHint / .nothing; backAction(stackCount:top:wide:shownSession:)
+AppNavLogic.EMPTY_DETAILS_TITLE ("Pick a session", caps) / EMPTY_DETAILS_TEXT; FADE_IN_MS 140 / FADE_OUT_MS 110
+```
+
+- What the app layer implements: `ReminderScheduling` over `UNUserNotificationCenter` (complete
+  example in ReminderScheduling.swift: time-interval trigger `r.timeInterval(from: Date())`,
+  title/body/threadIdentifier/targetContentIdentifier/userInfo from `r.content`, sound default,
+  interruption level `.active`), `NotificationPermission` (NotificationAsk.swift), and a
+  `UNUserNotificationCenterDelegate` set in `application(_:didFinishLaunchingWithOptions:)`
+  (`@UIApplicationDelegateAdaptor`, so a tap that launches the app arrives): `didReceive`
+  (default action only) -> `ReminderContent.directionsSessionId(userInfo)` ->
+  `await graph.notificationTapped(sessionId:)`; `willPresent` -> `ReminderContent.keyOf(identifier:userInfo:)`
+  -> `await graph.reminderFiring(...).shows`. Each scene's root calls
+  `graph.routePendingDirections(to: nav)` on appear and on `.onChange(of: graph.pendingDirectionsSessionId)`.
+- Reminders: `ReminderScheduler` implements the "App layer" paragraph of "Schedule + reminder
+  planning" above: plan -> the soonest `ReminderScheduler.MAX_PENDING` (60) -> cancel stale
+  (ReminderStore's armed keys plus any pending "id/min" request not planned) -> tidy delivered
+  ones (`deliveredToRemove`: not wanted, session ended = Kotlin `setTimeoutAfter`, superseded by a
+  newer one of the same session = Kotlin's per-session tag) -> add (identifier = key, fire date =
+  trigger minus the fake offset) -> `setArmed`. Serialized; requests made while one waits are
+  served by it. AppGraph re-plans at launch, on every `onForeground()`, on speakingAs / ids /
+  remindMinutes / fake offset changes, after a data swap and after permission is granted.
+  No boot receiver, receiver work or exact-alarm handling on iOS (pending requests survive
+  reboots and updates).
+- Debug fake time: launch argument `-fakeNow 2026-11-11T09:00:00-07:00` / `-fakeNow clear`
+  (Xcode scheme "Arguments Passed On Launch", or `xcrun simctl launch booted <bundle id> -fakeNow …`);
+  `MainActivityLogic.fakeNowArgument(args)` is the parsing (last one wins), applied in debug builds only.
+- Tests: `AppServices(filesDirectory:prefs:bundledData:dataFetcher:detailsFetcher:reminders:notificationPermission:...)`
+  with a temp dir, `InMemoryStore`s, `FakeReminderCenter` (ReminderSchedulingTests.swift, shared),
+  `clockOverride:`/`wallClock:` `FixedClock`s; see AppGraphTests.

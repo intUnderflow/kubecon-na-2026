@@ -159,9 +159,10 @@ Vertical metrics (hhea = OS/2 typo, same on both platforms): Barlow ascent 1.0 e
 - `WidthClass` (`.compact` < 600 <= `.medium` < 840 <= `.expanded`, `isWide`,
   `WidthClass.fromWidth(_:)`): Kotlin `ui/adaptive/WidthClass.kt`. Wide windows (iPad, iPhone
   landscape, wide Split View) use the list–detail layout. Read `\.widthClass`; the shell sets it
-  with `.readsWindowWidth()` (full window width, safe-area insets included, like Android). It
-  lives in Theme/ because Core has no UILogic/Adaptive yet; if Core adds `WidthClass`, delete
-  the enum from Theme/WidthClass.swift and keep the environment part.
+  with `.readsWindowWidth()` (full window width, safe-area insets included, like Android). The
+  enum is Core's (Core/Sources/KCNA26Core/UILogic/Adaptive/WidthClassRule.swift);
+  Theme/WidthClass.swift holds only the environment part (`\.widthClass`, `\.windowWidth`,
+  `.readsWindowWidth()`).
 
 ## Components (Sources/Components)
 
