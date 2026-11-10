@@ -49,7 +49,7 @@ class ColocatedRepositoryTest {
 
     @Test
     fun mergeCounts() {
-        assertEquals(615 + 223, repo.sessions.size)
+        assertEquals(614 + 223, repo.sessions.size)
         assertEquals(223, colo.size)
         assertEquals(212, colo.count { it.category == "colo" }) // talks
         assertEquals(10, colo.count { it.category == "log" }) // breaks
@@ -64,7 +64,7 @@ class ColocatedRepositoryTest {
         assertEquals(setOf("FOY", "LCH4"), repo.extraRooms.keys)
         assertTrue(repo.extraRooms.values.none { it.hasPosition })
         // Details: every co-located session is bundled.
-        assertEquals(562 + 223, repo.details.size)
+        assertEquals(561 + 223, repo.details.size)
         assertTrue(colo.all { it.id in repo.details })
     }
 
@@ -78,7 +78,7 @@ class ColocatedRepositoryTest {
         val first = sessions[0].jsonObject
         val clash = JsonObject(first + ("id" to JsonPrimitive("1289955"))) // a Project Lightning Talk
         val loaded = loadWith(root.with("sessions", JsonArray(listOf(clash) + sessions.drop(1))).toString())
-        assertEquals(838 - 1, loaded.sessions.size)
+        assertEquals(837 - 1, loaded.sessions.size)
         assertEquals(loaded.sessions.size, loaded.sessionsById.size)
         assertEquals("kubecon", loaded.session("1289955")!!.event)
     }
@@ -201,16 +201,16 @@ class ColocatedRepositoryTest {
         val r = Repository.load { name -> opened += name; File(TestData.assetsDir, name).inputStream() }
         assertFalse(Repository.COLOCATED_DETAILS in opened)
         assertFalse(Repository.DETAILS in opened)
-        assertEquals(615 + 223, r.sessions.size)
-        assertEquals(562 + 223, r.details.size)
+        assertEquals(614 + 223, r.sessions.size)
+        assertEquals(561 + 223, r.details.size)
         assertTrue(Repository.COLOCATED_DETAILS in opened)
         assertEquals(1, opened.count { it == Repository.COLOCATED })
         // Without it (or unreadable), the co-located sessions still load; they just have no descriptions.
         for (text in listOf(null, "{ not json")) {
             val bare = loadWith(TestData.text(Repository.COLOCATED), text)
-            assertEquals(615 + 223, bare.sessions.size)
+            assertEquals(614 + 223, bare.sessions.size)
             assertEquals(11, bare.coloEvents.size)
-            assertEquals(562, bare.details.size)
+            assertEquals(561, bare.details.size)
             assertNull(bare.details["1245135"])
         }
     }
@@ -221,11 +221,11 @@ class ColocatedRepositoryTest {
         assertTrue(badDate != TestData.text(Repository.COLOCATED))
         for (text in listOf(null, "{ not json", badDate)) {
             val r = loadWith(text)
-            assertEquals(615, r.sessions.size)
+            assertEquals(614, r.sessions.size)
             assertTrue(r.coloEvents.isEmpty())
             assertTrue(r.supersededIds.isEmpty())
             assertTrue(r.extraRooms.isEmpty())
-            assertEquals(562, r.details.size)
+            assertEquals(561, r.details.size)
             assertFalse("Jiazhou Gao" in r.anthropicSpeakers)
             // Monday is as it was before the co-located cards: the All-Access events are back in the
             // "Co-located + off-site" section at the top of the day, not labelled sponsor-hosted.

@@ -5476,25 +5476,6 @@
    "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1250974"
   },
   {
-   "id": "1250975",
-   "event": "kubecon",
-   "day": "tue",
-   "start": "2026-11-10T16:40:00-07:00",
-   "end": "2026-11-10T18:00:00-07:00",
-   "endIsEstimate": false,
-   "room": "RA",
-   "title": "CANCELED: Building a Cloud-Native RAG Pipeline from Scratch: Docling Operator, KFP, and OpenSearch",
-   "speakers": [
-    "Krishna Rekapalli"
-   ],
-   "note": null,
-   "category": "hands",
-   "group": null,
-   "isMine": false,
-   "hasAnthropicSpeaker": false,
-   "officialUrl": "https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/program/schedule/?id=1250975"
-  },
-  {
    "id": "1289643",
    "event": "kubecon",
    "day": "tue",

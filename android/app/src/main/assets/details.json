@@ -2227,15 +2227,6 @@
 }
 ]
 },
-"1250975": {
-"description": "Processing thousands of documents reliably requires more than a Python script. You need a persistent service, quality checks before anything hits your index, and a pipeline that skips files that haven't changed.\n\nIn this tutorial you will build exactly that on a local Kubernetes cluster. We start with the Docling Operator managing Docling Serve as a deployment, wire it to Kubeflow Pipelines, and finish with documents flowing into OpenSearch and queryable by the end of the session.\n\nAlong the way: writing KFP components that call Docling Serve in-cluster, extracting quality metrics from the DoclingDocument JSON to filter bad conversions before indexing, and using KFP step caching so unchanged documents never reprocess.\n\nYou leave with a running cluster, working pipeline code, and a repo you can extend.",
-"speakers": [
-{
-"name": "Krishna Rekapalli",
-"tagline": "Sr AI Engineer, IBM watsonx DataLabs"
-}
-]
-},
 "1250980": {
 "description": "Every AI and analytics system pays the same hidden cost: moving streaming data from where it's produced to where it's used — GPUs for training, tables for analytics, indexes for serving. The usual path re-serializes every row (JSON, protobuf) and grows a separate pipeline per destination. We show a different foundation, running in production on Kubernetes: keep data columnar end-to-end with Apache Arrow, and move it once over Arrow Flight. One write from a producer becomes durable, then lands everywhere it's needed — into GPU memory with no copy, into Delta Lake and Iceberg tables, and into serving systems like Pinot and ClickHouse. Because nothing is re-serialized on the hot path, moving data barely uses CPU; the real work is durability and commit. We cover the fundamentals — columnar transport, decoupling acks from slow sinks, idempotent commits, recovery after pod failure — and share real numbers from a multi-tenant cluster.",
 "speakers": [

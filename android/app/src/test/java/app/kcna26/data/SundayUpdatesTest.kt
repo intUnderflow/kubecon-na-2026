@@ -76,7 +76,7 @@ class SundayUpdatesTest {
             assertFalse(isMine(s, repo.defaultMe))
             assertFalse(repo.hasAnthropic(s, repo.defaultMe))
         }
-        assertEquals(615, repo.sessions.count { !it.isColocated }) // schedule.json; colocated.json's follow
+        assertEquals(614, repo.sessions.count { !it.isColocated }) // schedule.json; colocated.json's follow
         assertTrue(repo.sessions.none { it.title.matches(Regex("Unconference Session \\d+")) })
     }
 
@@ -120,7 +120,7 @@ class SundayUpdatesTest {
             opened += name
             File(TestData.assetsDir, name).inputStream()
         }
-        assertEquals(615, loaded.sessions.count { !it.isColocated })
+        assertEquals(614, loaded.sessions.count { !it.isColocated })
         assertFalse(opened.toString(), "unconference.json" in opened)
     }
 

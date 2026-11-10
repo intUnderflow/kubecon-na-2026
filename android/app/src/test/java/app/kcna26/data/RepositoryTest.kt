@@ -16,11 +16,11 @@ class RepositoryTest {
 
     @Test
     fun loadsAllSessions() {
-        // schedule.json's 615, then colocated.json's 223 (see ColocatedRepositoryTest).
-        assertEquals(838, repo.sessions.size)
-        assertEquals(838, repo.sessionsById.size)
-        assertEquals(615, repo.sessions.count { !it.isColocated })
-        assertTrue(repo.sessions.take(615).none { it.isColocated })
+        // schedule.json's 614, then colocated.json's 223 (see ColocatedRepositoryTest).
+        assertEquals(837, repo.sessions.size)
+        assertEquals(837, repo.sessionsById.size)
+        assertEquals(614, repo.sessions.count { !it.isColocated })
+        assertTrue(repo.sessions.take(614).none { it.isColocated })
     }
 
     @Test
@@ -80,8 +80,8 @@ class RepositoryTest {
 
     @Test
     fun detailsAndSummitDetails() {
-        assertEquals(562 + 223, repo.details.size) // details.json + colocated_details.json
-        assertEquals(562, repo.details.keys.count { repo.session(it)?.isColocated != true })
+        assertEquals(561 + 223, repo.details.size) // details.json + colocated_details.json
+        assertEquals(561, repo.details.keys.count { repo.session(it)?.isColocated != true })
         val d = repo.details["1203350"]!!
         assertEquals("Vinayak Goyal", d.speakers[0].name)
         assertEquals("Cluster Security @ Anthropic", d.speakers[0].tagline)

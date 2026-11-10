@@ -6,11 +6,11 @@ final class RepositoryTests: XCTestCase {
     private let repo = TestData.repo
 
     func testLoadsAllSessions() {
-        // schedule.json's 615, then colocated.json's 223 (see ColocatedRepositoryTests).
-        XCTAssertEqual(838, repo.sessions.count)
-        XCTAssertEqual(838, repo.sessionsById.count)
-        XCTAssertEqual(615, repo.sessions.filter { !$0.isColocated }.count)
-        XCTAssertTrue(repo.sessions.prefix(615).allSatisfy { !$0.isColocated })
+        // schedule.json's 614, then colocated.json's 223 (see ColocatedRepositoryTests).
+        XCTAssertEqual(837, repo.sessions.count)
+        XCTAssertEqual(837, repo.sessionsById.count)
+        XCTAssertEqual(614, repo.sessions.filter { !$0.isColocated }.count)
+        XCTAssertTrue(repo.sessions.prefix(614).allSatisfy { !$0.isColocated })
     }
 
     func testLoadsDaysCategoriesAndSpeakers() {
@@ -67,8 +67,8 @@ final class RepositoryTests: XCTestCase {
 
     func testDetailsAndSummitDetails() throws {
         let details = try repo.details
-        XCTAssertEqual(562 + 223, details.count) // details.json + colocated_details.json
-        XCTAssertEqual(562, details.keys.filter { repo.session($0)?.isColocated != true }.count)
+        XCTAssertEqual(561 + 223, details.count) // details.json + colocated_details.json
+        XCTAssertEqual(561, details.keys.filter { repo.session($0)?.isColocated != true }.count)
         let d = try XCTUnwrap(details["1203350"])
         XCTAssertEqual("Vinayak Goyal", d.speakers[0].name)
         XCTAssertEqual("Cluster Security @ Anthropic", d.speakers[0].tagline)
@@ -110,7 +110,7 @@ final class RepositoryTests: XCTestCase {
         XCTAssertEqual(answer.value, false)
         XCTAssertEqual(done.wait(timeout: .now() + 10), .success)
         XCTAssertTrue(r.isDetailsLoaded)
-        XCTAssertEqual(562 + 223, try r.details.count)
+        XCTAssertEqual(561 + 223, try r.details.count)
     }
 
     func testBuiltInCategoryColoursMatchScheduleJson() throws {

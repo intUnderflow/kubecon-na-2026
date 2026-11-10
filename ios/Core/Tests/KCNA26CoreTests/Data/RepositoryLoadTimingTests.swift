@@ -15,7 +15,7 @@ final class RepositoryLoadTimingTests: XCTestCase {
             let t1 = Date()
             let details = try r.details
             let t2 = Date()
-            XCTAssertEqual(562 + 223, details.count)
+            XCTAssertEqual(561 + 223, details.count)
             bestCore = min(bestCore, t1.timeIntervalSince(t0))
             best = min(best, t2.timeIntervalSince(t0))
         }
