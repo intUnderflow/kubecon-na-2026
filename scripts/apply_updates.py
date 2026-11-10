@@ -27,8 +27,8 @@ What it does (its "howToApply"):
   The app's unconference (voting) feature was removed after the Summit's voting ended, and
   data/unconference.json with it. When that file doesn't exist, topicUpdates are skipped
   (the script says so) and only schedule.json is updated.
-- Each updated file gets a provenance sentence in "_about", and the copies in
-  app/src/main/assets/ are refreshed.
+- Each updated file gets a provenance sentence in "_about", and the copies the apps bundle
+  (android/app/src/main/assets/ and ios/KCNA26/Resources/Data/) are refreshed.
 
 Everything is validated before anything is written: every id and number must exist,
 times must carry a UTC offset, rooms must exist in rooms.json, and picked.sessionId must
@@ -49,7 +49,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
-ASSETS = ROOT / "app" / "src" / "main" / "assets"
+# The copies each app bundles: the Android app's assets and the iOS app's resources.
+ASSETS = [
+    ROOT / "android" / "app" / "src" / "main" / "assets",
+    ROOT / "ios" / "KCNA26" / "Resources" / "Data",
+]
 SCHEDULE = "schedule.json"
 UNCONFERENCE = "unconference.json"
 ROOMS = "rooms.json"
@@ -474,7 +478,7 @@ def main(argv):
     changed = []
     for name, data, style in outputs:
         text = dump(data, style)
-        for target in (DATA / name, ASSETS / name):
+        for target in (DATA / name, *(a / name for a in ASSETS)):
             if not target.parent.is_dir():
                 print(f"warning: {target.parent} missing; skipped", file=sys.stderr)
                 continue

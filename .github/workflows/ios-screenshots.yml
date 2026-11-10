@@ -1,0 +1,74 @@
+# Takes the iOS app's screenshots in the simulator (ios/scripts/screenshots.sh: the debug
+# screenshot scenes, the iOS twins of docs/screenshots/*.png), uploads them as an artifact and
+# commits them to docs/screenshots/ios on the same branch when they changed.
+#
+# Run it from the Actions tab (any branch), or push a commit whose message contains
+# "[screenshots]". Its own commit is pushed with GITHUB_TOKEN, which starts no workflows.
+name: iOS screenshots
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["**"]
+
+permissions:
+  contents: write
+
+jobs:
+  screenshots:
+    name: Take the iOS screenshots
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[screenshots]')
+    runs-on: macos-latest
+    timeout-minutes: 60
+    # Job level, so the (skipped) runs of ordinary pushes never cancel a run in progress.
+    concurrency:
+      group: ios-screenshots-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      # The branch itself (not the detached commit), so the screenshots can be pushed to it.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes
+
+      - name: Build app (iOS Simulator, Debug)
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/KCNA26.xcodeproj -scheme KCNA26 \
+            -configuration Debug -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/sim CODE_SIGNING_ALLOWED=NO build
+
+      - name: Take the screenshots
+        run: bash ios/scripts/screenshots.sh build/sim/Build/Products/Debug-iphonesimulator/KCNA26.app docs/screenshots/ios
+
+      - name: Upload the screenshots
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-screenshots
+          path: docs/screenshots/ios
+          if-no-files-found: warn
+          retention-days: 30
+
+      # Branches only (a run started on a tag still uploads the artifact).
+      - name: Commit the screenshots if they changed
+        if: startsWith(github.ref, 'refs/heads/')
+        run: |
+          git add -A docs/screenshots/ios
+          if git diff --cached --quiet; then
+            echo "The screenshots haven't changed: nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # The commit that was built (the branch's tip at checkout, maybe newer than GITHUB_SHA).
+          git commit -m "iOS screenshots (from $(git rev-parse --short=7 HEAD))"
+          # Someone may have pushed meanwhile: the screenshots only touch their own folder, so rebase once.
+          if ! git push origin "HEAD:${GITHUB_REF}"; then
+            git pull --rebase origin "${GITHUB_REF}"
+            git push origin "HEAD:${GITHUB_REF}"
+          fi

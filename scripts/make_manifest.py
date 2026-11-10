@@ -8,7 +8,7 @@ It covers every data/*.json except test_vectors.json and the manifest itself.
 
 The app downloads a data set only when its version is higher than the one it already has
 (bundled or downloaded), so the version must never go down. It is one more than the highest
-version found in the working tree's manifest, the app assets' manifest and every version of
+version found in the working tree's manifest, the apps' bundled manifests and every version of
 data/manifest.json in the git history (all branches, remote-tracking ones included). It stays
 the same only when the data files equal that highest version's files, so running the script
 twice is harmless, and a `git revert` of a data change, or a merge that brings back an older
@@ -18,9 +18,10 @@ forward (edit the data, run this script, push).
 If data/manifest.json exists but doesn't parse (merge conflict markers, for example) it stops
 with an error rather than guess: resolve the file (either side will do), then run it again.
 
-The APK bundles its own copy in app/src/main/assets/manifest.json. That copy is refreshed too
-when the asset JSON files are identical to data/. With --sync-assets the data files are copied
-into the assets first, so the next APK build bundles exactly what was published.
+Each app bundles its own copy: android/app/src/main/assets/manifest.json (the APK) and
+ios/KCNA26/Resources/Data/manifest.json (the iOS app). A copy is refreshed too when that app's
+bundled JSON files are identical to data/. With --sync-assets the data files are copied into
+both apps first, so the next builds bundle exactly what was published.
 
 Stdlib only (git is optional). Usage, from the repo root:
 
@@ -40,7 +41,11 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
-ASSETS = ROOT / "app" / "src" / "main" / "assets"
+# Where each app bundles the data: the Android app's assets and the iOS app's resources.
+ASSETS = [
+    ROOT / "android" / "app" / "src" / "main" / "assets",
+    ROOT / "ios" / "KCNA26" / "Resources" / "Data",
+]
 MANIFEST = "manifest.json"
 EXCLUDE = {MANIFEST, "test_vectors.json"}
 
@@ -136,10 +141,14 @@ def render(manifest: dict) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--data", type=pathlib.Path, default=DATA)
-    ap.add_argument("--assets", type=pathlib.Path, default=ASSETS)
-    ap.add_argument("--sync-assets", action="store_true", help="copy data/*.json into the app assets first")
+    ap.add_argument(
+        "--assets", type=pathlib.Path, action="append",
+        help="an app's bundled data folder (repeatable; default: the Android assets and the iOS resources)",
+    )
+    ap.add_argument("--sync-assets", action="store_true", help="copy data/*.json into each app's bundled data first")
     ap.add_argument("--check", action="store_true", help="write nothing; exit 1 if the manifest is stale")
     args = ap.parse_args()
+    asset_dirs = args.assets or ASSETS
 
     files = file_table(args.data)
     if not files:
@@ -157,7 +166,8 @@ def main() -> int:
         )
         return 2
 
-    known = [m for m in [current, read_manifest(args.assets / MANIFEST, strict=False)] if m] + git_history(args.data)
+    bundled_manifests = [read_manifest(d / MANIFEST, strict=False) for d in asset_dirs]
+    known = [m for m in [current, *bundled_manifests] if m] + git_history(args.data)
     now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     manifest = next_manifest(files, known, now)
     changed = current != manifest
@@ -180,20 +190,23 @@ def main() -> int:
     else:
         print(f"no data changes: version stays {manifest['version']}")
 
-    if args.assets.is_dir():
+    for assets in asset_dirs:
+        if not assets.is_dir():
+            print(f"warning: {assets} doesn't exist; skipped", file=sys.stderr)
+            continue
         if args.sync_assets:
             for name in files:
-                shutil.copyfile(args.data / name, args.assets / name)
-        assets_files = {n: e for n, e in file_table(args.assets).items() if n in files}
+                shutil.copyfile(args.data / name, assets / name)
+        assets_files = {n: e for n, e in file_table(assets).items() if n in files}
         if assets_files == files:
-            bundled = args.assets / MANIFEST
+            bundled = assets / MANIFEST
             if read_manifest(bundled, strict=False) != manifest:
                 bundled.write_text(render(manifest), encoding="utf-8")
                 print(f"wrote {bundled}")
         else:
             differ = sorted(n for n in files if assets_files.get(n) != files[n])
             print(
-                f"warning: {args.assets} differs from data/ ({', '.join(differ)}); "
+                f"warning: {assets} differs from data/ ({', '.join(differ)}); "
                 "its manifest was left alone. Run with --sync-assets to bundle the published data.",
                 file=sys.stderr,
             )

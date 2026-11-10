@@ -23,3 +23,9 @@ keystore.properties
 
 # data/updates/ holds day-of update files applied with scripts/apply_updates.py.
 # Strip personal fields (such as youUpvoted) before committing one.
+
+# iOS: Xcode user state and build output (ios/Core/.gitignore covers SwiftPM's .build/)
+xcuserdata/
+*.xcuserstate
+DerivedData/
+/build/
