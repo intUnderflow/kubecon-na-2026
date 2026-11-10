@@ -267,3 +267,85 @@ them with `Canvas` / `Path` in `Directions/`.
   ..., running: false)`. Keep preview code simple: it compiles in every build configuration.
 - **Checking without Xcode**: `swiftc -parse <file>` must print nothing; grep Core for every
   symbol you use; the lead compiles on macOS CI.
+
+## App shell (Sources/App) and platform services (Sources/Platform)
+
+Kotlin `MainActivity.kt` (UI parts), `nav/AppNav.kt`, `KcnaApp.kt` process wiring. The logic is
+Core's (`AppGraph`, `NavModel`, `AppNavLogic`, `MainActivityLogic`; see "App graph, navigation
+and reminder scheduling" in ios/Core/CONVENTIONS.md); the shell only wires and lays out.
+
+```
+App/       KCNA26App.swift (@main, scenePhase), AppDelegate.swift (UNUserNotificationCenter delegate,
+           willTerminate), AppGraph+Live.swift (AppGraph.shared), RootView.swift (rootState, per-window
+           NavModel + @SceneStorage, first-run sheet, tapped-reminder routing), AppNav.swift
+           (NavigationStack, ScheduleLayer, details sheet/pane, EmptyDetailsHint), SceneEnvironment.swift
+Platform/  NotificationCenterReminders.swift (ReminderScheduling), NotificationCenterPermission.swift
+           (NotificationPermission), NotificationCenterDelegate.swift, DirectionsLocationService.swift
+           (CoreLocation for Directions), SystemLinks.swift (Settings pages, URLs)
+```
+
+- **Lifecycle**: `KCNA26App.init` installs the compass declination source and calls
+  `AppGraph.shared.start(arguments:)`; the App-level `scenePhase` (`onChange(initial: true)`)
+  calls `graph.onForeground()` on `.active` and `graph.onBackground()` on every other phase;
+  `applicationWillTerminate` calls `onBackground()` too. Screens never call these.
+- **Root**: `graph.rootState` -> `.loading` (the `bg` page, same colour as `LaunchBackground`),
+  `.failed(text)` (the Core text in `type.material.bodyLarge`, 24 pt padding), `.ready` (the
+  window's shell). Root modifiers: `.environment(graph)`, `.kcnaTheme()`,
+  `.kcnaPageBackground()`, `.readsWindowWidth()`.
+- **Navigation**: one `NavModel` per window (scene), restored from and mirrored into
+  `@SceneStorage(NavModel.KEY_STACK / KEY_SESSION)`. `NavigationStack(path: $nav.path)` rooted at
+  the Schedule; `.navigationDestination(for: Screen.self)`: `.settings` -> `SettingsScreen`,
+  `.directions(id)` -> `DirectionsScreen`. The system back button / edge swipe pops (the path
+  setter writes the stack back). The Schedule root hides the navigation bar
+  (`.toolbar(.hidden, for: .navigationBar)`, it draws its own header); pushed screens get the
+  system bar (style it with `.toolbarBackground(colors.bg, for: .navigationBar)` and a title).
+- **Session details** (`AppNavLogic`): wide (`widthClass.isWide`): the list at
+  `AppNavLogic.listPaneWidth(windowWidth)`, a vertical hairline, then the pane on `surface`
+  (`SessionDetails(...).id(id)` or the "Pick a session" hint). Compact: `.sheet(item:)` with
+  `SessionSheet(...).id(id)`, `.presentationDetents([.medium, .large])` opening at `.large`;
+  shown only while the Schedule is on top (pushing Directions hides it, back shows it again,
+  `openSessionId` is kept) and the first-run sheet is not up. A swipe-down closes the session;
+  the window turning wide moves the details into the pane. Stale ids are dropped
+  (`AppNavLogic.dropsStaleSession`). Escape on a hardware keyboard closes the wide pane's
+  session (`AppNavLogic.backAction`).
+- **First-run sheet**: `.sheet(isPresented:)` while `graph.showsFirstRunSheet`, detents
+  `[.large]`; a swipe-down = `settings.dismissFirstRunForNow()`. The content finishes with
+  `settings.finishFirstRun(name)` (closes it), never `dismiss()`.
+- **Sheet presentation split**: the shell owns `.sheet` and `.presentationDetents`; the
+  content view owns the rest (`.presentationBackground`, `.presentationCornerRadius`,
+  `.presentationDragIndicator`). Do not set detents inside the content.
+- **Reminder taps**: `NotificationCenterDelegate` -> `graph.notificationTapped(sessionId:)`;
+  the window's root calls `graph.routePendingDirections(to: nav)` on appear and on
+  `.onChange(of: graph.pendingDirectionsSessionId)` (Schedule with the details -> Directions).
+  `willPresent` shows a reminder only if `graph.reminderFiring(...)` `.shows` (banner, list,
+  sound); other notifications always show.
+
+### Environment provided by the shell
+
+```swift
+@Environment(AppGraph.self) private var graph          // Kotlin LocalAppGraph.current (repository, settings, going, clock, details, router, dataSync, …)
+@Environment(NavModel.self) private var nav            // this window's navigation (screens normally use their callbacks instead)
+@Environment(\.detailsScrollCarry) private var carry   // DetailsScrollCarry? for this window (nil in previews)
+```
+
+### Screen entry points
+
+The shell calls exactly these (stubs exist until the screen agents replace them; keep the
+signatures, explicit `init`s, as shown). Closures are called on the main actor.
+
+| File | Entry point | Called with |
+|---|---|---|
+| Schedule/ScheduleScreen.swift | `ScheduleScreen(selectedSessionId: String?, onOpenSession: @escaping (String) -> Void, onOpenDirections: @escaping (String) -> Void, onOpenSettings: @escaping () -> Void, twoPane: Bool)` | the shown session (sheet or pane), `nav.openSession`, `nav.openDirections`, `nav.openSettings`, `widthClass.isWide`; it fills its frame (the list pane's width when wide) |
+| Session/SessionDetails.swift | `SessionDetails(sessionId: String, onDirections: @escaping (String) -> Void, contentPadding: EdgeInsets = EdgeInsets(), onClose: (() -> Void)? = nil)` | wide pane: `nav.openDirections`, `onClose: nav.closeSession`, no extra padding (the safe area reaches the scroll view); keyed `.id(sessionId)`; the pane is `surface` |
+| Session/SessionSheet.swift | `SessionSheet(sessionId: String, onDismiss: @escaping () -> Void, onDirections: @escaping (String) -> Void)` | compact sheet content: `onDismiss: nav.closeSession` (the × button), `nav.openDirections`; keyed `.id(sessionId)` |
+| Settings/SettingsScreen.swift | `SettingsScreen(onBack: @escaping () -> Void)` | pushed; `onBack: nav.pop` |
+| Settings/FirstRunSheet.swift | `FirstRunSpeakerSheet()` | the first-run sheet content (reads `graph` itself) |
+| Directions/DirectionsScreen.swift | `DirectionsScreen(sessionId: String, onBack: @escaping () -> Void)` | pushed (also from a reminder tap); `onBack: nav.pop` |
+
+### Platform services (Sources/Platform)
+
+| Type | Use |
+|---|---|
+| `DirectionsLocationService` | `@MainActor @Observable`, one per Directions screen: `@State private var location = DirectionsLocationService()` (cheap `init`; the `CLLocationManager` is made on the first start). Put `.tracksDirectionsLocation(location, for: vm)` on the live Directions content: it starts location + compass while the view is on screen in an `.active` scene, stops otherwise, keeps the screen on meanwhile (Kotlin `KeepScreenOn`) and follows rotations for the compass. It feeds the `DirectionsViewModel` (`onLocation`, `onHeading`, `trackingStarted/Stopped`, `onLocationFailure`, `setDeviceLocationOff`) as Core's `LocationTracker` / `CompassSensor` say, and asks for When-In-Use authorization once per screen. `location.locStatus(vm)` -> `LocStatus` for `DirectionsLogic.readout`; `location.authorization` (observable); `location.requestAccess()` for "Allow location" / "Turn on location" (the dialog while `.notDetermined`, else the app's Settings page); `location.refreshOrientation()` if the screen sees a size change itself. `DirectionsLocationService.installDeclinationSource()` runs at launch. |
+| `SystemLinks` | `@MainActor`: `openAppSettings()`, `openNotificationSettings()`, `open(url)` / `open(string)` for non-view code (views use `@Environment(\.openURL)`), `await SystemLinks.turnOnNotifications(graph)` = the notifications-off hint's "Turn on" (`NotificationAsk.turnOn`: the system dialog via `graph.requestNotificationsNow()`, else the notification settings). |
+| `NotificationCenterReminders`, `NotificationCenterPermission`, `NotificationCenterDelegate` | wired by the shell (`AppGraph.shared`, `AppDelegate`); screens read the permission through `graph.notificationPermission.status()`. |
