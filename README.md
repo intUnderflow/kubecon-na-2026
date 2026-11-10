@@ -30,7 +30,7 @@ With a free Apple ID the app has to be re-signed every 7 days (AltStore can refr
 
 ## Screenshots
 
-From the Android app; the iOS app has the same screens.
+### Android
 
 | Schedule | Monday | Directions | Session |
 |---|---|---|---|
@@ -39,6 +39,16 @@ From the Android app; the iOS app has the same screens.
 | Inner screen: list and detail | Inner screen: directions | Dark theme |
 |---|---|---|
 | <img src="docs/screenshots/inner-list-detail.png" width="300" alt="List and detail on the inner screen"> | <img src="docs/screenshots/inner-directions.png" width="300" alt="Directions on the inner screen"> | <img src="docs/screenshots/dark-schedule.png" width="200" alt="Dark theme"> |
+
+### iPhone and iPad
+
+| Schedule | Monday | Directions | Session |
+|---|---|---|---|
+| <img src="docs/screenshots/ios/iphone-schedule.png" width="200" alt="Schedule on iPhone"> | <img src="docs/screenshots/ios/iphone-monday.png" width="200" alt="Monday's co-located events on iPhone"> | <img src="docs/screenshots/ios/iphone-directions.png" width="200" alt="Directions on iPhone"> | <img src="docs/screenshots/ios/iphone-session.png" width="200" alt="Session details on iPhone"> |
+
+| iPad: list and detail | iPad: directions | Dark theme |
+|---|---|---|
+| <img src="docs/screenshots/ios/ipad-list-detail.png" width="300" alt="List and detail on iPad"> | <img src="docs/screenshots/ios/ipad-directions.png" width="300" alt="Directions on iPad"> | <img src="docs/screenshots/ios/iphone-dark-schedule.png" width="200" alt="Dark theme on iPhone"> |
 
 ## Features
 
