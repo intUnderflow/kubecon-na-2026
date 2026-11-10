@@ -35,7 +35,7 @@ class BundledManifestTest {
 
     @Test
     fun publishedManifestIsTheBundledOne() {
-        val published = listOf(File("../data"), File("data")).map { File(it, DataManifest.FILE) }.firstOrNull { it.isFile } ?: return
+        val published = listOf(File("../../data"), File("../data")).map { File(it, DataManifest.FILE) }.firstOrNull { it.isFile } ?: return
         assertEquals(manifest, DataManifest.parse(published.readBytes()))
     }
 }

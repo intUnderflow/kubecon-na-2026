@@ -2,14 +2,14 @@
 // Regenerates the golden files for WebParityTest by running the web version's OWN routing code
 // (path, route, lvStartNode, brgTo, dir8, r10, sliced verbatim out of reference/schedule.html).
 // Needs a local copy of the original web version at reference/schedule.html (not in the public repo).
-// Usage, from the Gradle root:  node app/src/test/java/app/kcna26/route/golden/gen_web_golden.js
+// Usage, from the Gradle root (android/):  node app/src/test/java/app/kcna26/route/golden/gen_web_golden.js
 // Line formats:
 //   web_routes.txt: from|to|totalM|levelsChanged|kinds|crc32(texts)|points
 //   web_live.txt:   x|y|startNode|startKey|crc32(startText)|to|totalM|levelsChanged|kinds|crc32(texts)|points
 // kinds: one letter per step (s start, w walk, u up, d down, e end); texts joined with "\n", CRC-32 of the UTF-8.
 'use strict';
 const fs = require('fs'), path = require('path');
-const root = path.resolve(__dirname, '../../../../../../../..');
+const root = path.resolve(__dirname, '../../../../../../../../..'); // the repository root
 const html = fs.readFileSync(path.join(root, 'reference/schedule.html'), 'utf8');
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
 const app = scripts.find(s => s.includes('function lvStartNode'));

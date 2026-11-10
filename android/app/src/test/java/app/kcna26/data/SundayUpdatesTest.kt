@@ -43,9 +43,9 @@ class SundayUpdatesTest {
         val discussionUrl: String? = null,
     )
 
-    /** A file under the repository's data/ folder (tests run with app/ as the working directory). */
+    /** A file under the repository's data/ folder (tests run with android/app/ as the working directory). */
     private fun dataFile(name: String): File? =
-        listOf(File("../data/$name"), File("data/$name")).firstOrNull { it.isFile }
+        listOf(File("../../data/$name"), File("../data/$name")).firstOrNull { it.isFile }
 
     private val updates: Updates by lazy {
         val f = dataFile("updates/2026-11-08-sunday.json") ?: error("data/updates/2026-11-08-sunday.json not found")

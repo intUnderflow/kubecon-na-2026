@@ -24,9 +24,9 @@ class ColocatedRepositoryTest {
 
     private fun instant(iso: String) = OffsetDateTime.parse(iso).toInstant()
 
-    /** A file under the repository's data/ folder (tests run with app/ as the working directory). */
+    /** A file under the repository's data/ folder (tests run with android/app/ as the working directory). */
     private fun dataFile(name: String): File? =
-        listOf(File("../data/$name"), File("data/$name")).firstOrNull { it.isFile }
+        listOf(File("../../data/$name"), File("../data/$name")).firstOrNull { it.isFile }
 
     /**
      * The real assets, with colocated.json replaced by [colocated] and colocated_details.json by

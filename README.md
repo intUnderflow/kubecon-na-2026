@@ -53,7 +53,7 @@ Installed apps pick up new data from the `main` branch of this repository: on st
 2. `python3 -I scripts/fetch_colocated.py` refreshes the co-located events (`data/colocated.json`, `data/colocated_details.json`).
 3. `python3 -I scripts/apply_updates.py <updates file>` applies a day's schedule changes to `data/schedule.json`. If you keep the updates file in `data/updates/`, strip personal fields (such as `youUpvoted`) first.
 4. `python3 -I scripts/make_manifest.py --sync-assets` bumps the version in `data/manifest.json` and copies the data into the app's assets.
-5. Run `./gradlew testDebugUnitTest`, then commit and push.
+5. Run `cd android && ./gradlew testDebugUnitTest`, then commit and push.
 
 Apps ignore data whose version isn't higher than the one they have, so never hand-edit `data/manifest.json` back to an older version: fix forward (edit the data, run the script, push). Each file is verified by SHA-256 and size, and the whole set is parsed and cross-checked before the app switches to it. If anything fails, the app keeps the data it has.
 
@@ -61,7 +61,10 @@ Apps ignore data whose version isn't higher than the one they have, so never han
 
 You need JDK 17 or later (Android Studio's bundled JDK works) and the Android SDK (compile SDK 37).
 
+The Android app is the Gradle project in `android/`:
+
 ```sh
+cd android
 ./gradlew assembleDebug   # app/build/outputs/apk/debug/app-debug.apk
 ```
 
@@ -79,7 +82,7 @@ Without them, `./gradlew assembleRelease` builds an unsigned APK. A fork can poi
 ## Credits
 
 - Schedule data comes from the official KubeCon + CloudNativeCon North America 2026 and CNCF agendas via Sessionize. Session descriptions and speaker taglines are written by the speakers. The data is not covered by the MIT licence.
-- Fonts: [Barlow Condensed](https://github.com/jpt/barlow) and [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/), both under the SIL Open Font License 1.1 (see `app/src/main/assets/licenses/`).
+- Fonts: [Barlow Condensed](https://github.com/jpt/barlow) and [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/), both under the SIL Open Font License 1.1 (see `android/app/src/main/assets/licenses/`).
 - App icon: the Kubernetes logo from the CNCF artwork repository (https://github.com/cncf/artwork). Kubernetes is a registered trademark of The Linux Foundation; use follows the Linux Foundation trademark usage guidelines (https://www.linuxfoundation.org/trademark-usage).
 
 This is an unofficial community app. It is not affiliated with or endorsed by the CNCF, the Linux Foundation or Anthropic.

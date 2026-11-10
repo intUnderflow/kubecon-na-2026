@@ -15,8 +15,8 @@ for it) and the details only later, with details.json, so they are kept out of t
 Stdlib only (Python 3.9+). From the repository root:
     python3 -I scripts/fetch_colocated.py                    # download the page
     python3 -I scripts/fetch_colocated.py --offline PAGE.html  # use a saved copy of the page
-The script validates its output with assertions and exits non-zero on any failure. Then copy both
-files to app/src/main/assets.
+The script validates its output with assertions and exits non-zero on any failure. Then run
+scripts/make_manifest.py --sync-assets, which copies both files into the Android and iOS apps.
 """
 import argparse
 import collections
@@ -177,7 +177,8 @@ FIELD_NOTES = {
 
 # Notes for whoever merges this file into the app (not field descriptions).
 INTEGRATION = [
-    "Assets: the app loads data from app/src/main/assets only; copy data/colocated.json and "
+    "Assets: the apps load data from their bundled copies only (android/app/src/main/assets, "
+    "ios/KCNA26/Resources/Data); scripts/make_manifest.py --sync-assets copies data/colocated.json and "
     "data/colocated_details.json there.",
     "Decoding: the top level decodes with ScheduleFileDto (sessions, anthropicSpeakers, fieldNotes, timeZone) and "
     "RoomsFileDto (rooms); 'events' needs its own DTO. colocated_details.json's 'details' is "
