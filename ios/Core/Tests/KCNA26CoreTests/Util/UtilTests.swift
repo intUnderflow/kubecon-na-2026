@@ -110,7 +110,10 @@ final class UtilTests: XCTestCase {
                        "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1")
         XCTAssertEqual(SHA256.hex(String(repeating: "a", count: 1000)), "41edece42d63e8d9bf515a9ba6932e1c20cbc9f5a5d134645adb5db1b9737ea3")
         // Lengths around the padding boundary (55, 56, 63, 64 bytes) and binary data.
-        XCTAssertEqual(SHA256.hex(Data((0..<256).map(UInt8.init) + (0..<256).map(UInt8.init) + (0..<256).map(UInt8.init))),
+        // Built in steps: one long `+` chain is too slow for the Swift 6.2 type checker.
+        let bytes: [UInt8] = (0..<256).map { UInt8($0) }
+        let threeRuns: [UInt8] = bytes + bytes + bytes
+        XCTAssertEqual(SHA256.hex(Data(threeRuns)),
                        "f3a25aa93aa2fbba28d79260535bbd6a5eb0fc1c24a8b0f04e12b484c1dfe363")
         XCTAssertEqual(SHA256.digest(Data()).count, 32)
     }
