@@ -149,8 +149,10 @@ struct ScheduleScreen: View {
                     ForEach(sections, id: \.id) { section in
                         Section {
                             ForEach(section.rows, id: \.key) { row in
-                                JumpMark(id: ScheduleScreen.jumpAnchorId(row.key))
-                                listRow(row, ctx, proxy)
+                                VStack(alignment: .leading, spacing: 0) {
+                                    JumpMark(id: ScheduleScreen.jumpAnchorId(row.key))
+                                    listRow(row, ctx, proxy)
+                                }
                             }
                         } header: {
                             if let header = section.header {
@@ -201,7 +203,7 @@ struct ScheduleScreen: View {
     }
 
     /// One list row, with the hooks the scrolling needs: whether it is laid out, and (co-located
-    /// card rows) where its top is. Its jump anchor is the ``JumpMark`` placed just before it.
+    /// card rows) where its top is. Its jump anchor is the ``JumpMark`` stacked on top of it.
     private func listRow(_ row: ScheduleRow, _ ctx: ListContext, _ proxy: ScrollViewProxy) -> some View {
         let key: String = row.key
         let memo: ScheduleScreenMemo = memo
@@ -453,7 +455,8 @@ struct ScheduleScreen: View {
     /// below the list's top, under its pinned heading. SwiftUI scrolls to the row's ``JumpMark``
     /// (zero height, at the row's top) with a unit-point anchor of sticky height / list height:
     /// for a zero-height target that puts its top exactly that far below the list's top. A row
-    /// not laid out yet is first scrolled to so its mark exists. `then` runs once the scroll is done.
+    /// not laid out yet is first scrolled to by its list id (lazy rows can be reached that way),
+    /// so its mark exists. `then` runs once the scroll is done.
     private func scrollToRow(_ proxy: ScrollViewProxy, _ key: String, animated: Bool, then done: (@MainActor () -> Void)? = nil) {
         let anchor: String = ScheduleScreen.jumpAnchorId(key)
         let laidOut: Bool = memo.realized.contains(key)
@@ -582,9 +585,10 @@ private final class ScheduleScreenMemo {
     }
 }
 
-/// A zero-height, invisible view placed in the list right before its row (so at the row's top):
-/// the target ``ScheduleScreen`` scrolls to when it jumps to that row. A direct child of the lazy
-/// stack, so `ScrollViewReader` always finds it once the row is laid out.
+/// A zero-height, invisible view stacked on top of its row (so at the row's top): what a jump
+/// scrolls to, with a unit-point anchor, to land the row exactly under its pinned heading. Plain
+/// layout (no alignment-guide offset), with its own explicit id. Scrolls that only need the row
+/// near the top (day tabs, reaching a row that isn't laid out yet) use the row's list id.
 private struct JumpMark: View {
     let id: String
 
