@@ -149,6 +149,7 @@ struct ScheduleScreen: View {
                     ForEach(sections, id: \.id) { section in
                         Section {
                             ForEach(section.rows, id: \.key) { row in
+                                JumpMark(id: ScheduleScreen.jumpAnchorId(row.key))
                                 listRow(row, ctx, proxy)
                             }
                         } header: {
@@ -162,6 +163,14 @@ struct ScheduleScreen: View {
                 .padding(.bottom, 16)
             }
             .coordinateSpace(ScheduleScreen.listSpace)
+            .background {
+                GeometryReader { g in
+                    let height: CGFloat = g.size.height
+                    Color.clear
+                        .onAppear { memo.viewportHeight = height }
+                        .onChange(of: height) { _, h in memo.viewportHeight = h }
+                }
+            }
         }
         // The banner jump: re-checked whenever the rows change, until it lands or times out.
         .onChange(of: rowKeys) { _, _ in
@@ -191,8 +200,8 @@ struct ScheduleScreen: View {
         }
     }
 
-    /// One list row, with the hooks the scrolling needs: the jump anchor above its top, whether
-    /// it is laid out, and (co-located card rows) where its top is.
+    /// One list row, with the hooks the scrolling needs: whether it is laid out, and (co-located
+    /// card rows) where its top is. Its jump anchor is the ``JumpMark`` placed just before it.
     private func listRow(_ row: ScheduleRow, _ ctx: ListContext, _ proxy: ScrollViewProxy) -> some View {
         let key: String = row.key
         let memo: ScheduleScreenMemo = memo
@@ -200,9 +209,6 @@ struct ScheduleScreen: View {
         if case .colo = row { isColo = true }
         return rowContent(row, ctx, proxy)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(alignment: .top) {
-                JumpAnchor(id: ScheduleScreen.jumpAnchorId(key))
-            }
             .background {
                 if isColo {
                     RowTopReader(key: key, memo: memo)
@@ -444,9 +450,10 @@ struct ScheduleScreen: View {
     }
 
     /// Kotlin `scrollToItem(i, -stickyPx)`: the row's top lands ``ScheduleScreenLogic/STICKY_HEADING_HEIGHT``
-    /// below the list's top, under its pinned heading. SwiftUI scrolls to the row's jump anchor
-    /// (a view that ends at the row's top); a row not laid out yet is first scrolled to so the
-    /// anchor exists. `then` runs once the scroll is done.
+    /// below the list's top, under its pinned heading. SwiftUI scrolls to the row's ``JumpMark``
+    /// (zero height, at the row's top) with a unit-point anchor of sticky height / list height:
+    /// for a zero-height target that puts its top exactly that far below the list's top. A row
+    /// not laid out yet is first scrolled to so its mark exists. `then` runs once the scroll is done.
     private func scrollToRow(_ proxy: ScrollViewProxy, _ key: String, animated: Bool, then done: (@MainActor () -> Void)? = nil) {
         let anchor: String = ScheduleScreen.jumpAnchorId(key)
         let laidOut: Bool = memo.realized.contains(key)
@@ -459,8 +466,11 @@ struct ScheduleScreen: View {
                 }
                 try? await Task.sleep(nanoseconds: settle)
             }
+            let listHeight: CGFloat = memo.viewportHeight
+            let sticky: CGFloat = CGFloat(ScheduleScreenLogic.STICKY_HEADING_HEIGHT)
+            let y: CGFloat = listHeight > sticky ? sticky / listHeight : 0
             withAnimation(animation) {
-                proxy.scrollTo(anchor, anchor: .top)
+                proxy.scrollTo(anchor, anchor: UnitPoint(x: 0.5, y: y))
             }
             if let done {
                 if animated {
@@ -531,8 +541,10 @@ private final class ScheduleScreenMemo {
     private(set) var lastRows: [ScheduleRow] = []
     /// ``lastRows`` in pinned sections.
     private(set) var lastSections: [ScheduleRowSection] = []
-    /// Keys of the rows currently laid out (their jump anchors exist).
+    /// Keys of the rows currently laid out (their jump marks exist).
     var realized: Set<String> = []
+    /// The list's visible height (points), for the jump's unit-point anchor.
+    var viewportHeight: CGFloat = 0
     /// Last measured top of each co-located card row, relative to the list's top (points).
     var rowTops: [String: Double] = [:]
 
@@ -570,15 +582,16 @@ private final class ScheduleScreenMemo {
     }
 }
 
-/// A 1 × 36 pt invisible view ending at its row's top edge: scrolling it to the list's top puts
-/// the row ``ScheduleScreenLogic/STICKY_HEADING_HEIGHT`` below, under its pinned heading.
-private struct JumpAnchor: View {
+/// A zero-height, invisible view placed in the list right before its row (so at the row's top):
+/// the target ``ScheduleScreen`` scrolls to when it jumps to that row. A direct child of the lazy
+/// stack, so `ScrollViewReader` always finds it once the row is laid out.
+private struct JumpMark: View {
     let id: String
 
     var body: some View {
         Color.clear
-            .frame(width: 1, height: CGFloat(ScheduleScreenLogic.STICKY_HEADING_HEIGHT))
-            .alignmentGuide(.top) { d in d[.bottom] }
+            .frame(maxWidth: .infinity)
+            .frame(height: 0)
             .id(id)
             .allowsHitTesting(false)
             .accessibilityHidden(true)
