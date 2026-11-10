@@ -78,7 +78,11 @@ private struct SceneContent: View {
             set: { shown in
                 // Swiped away (Kotlin onDismissRequest): only until the next cold start. Picking a
                 // name or Skip calls settings.finishFirstRun, which closes the sheet by itself.
-                if !shown && settings.firstRunPending { settings.dismissFirstRunForNow() }
+                // SwiftUI calls a binding's setter on the main thread; `assumeIsolated` keeps this
+                // compiling whether or not the SDK declares Binding's closures `@Sendable`.
+                MainActor.assumeIsolated {
+                    if !shown && settings.firstRunPending { settings.dismissFirstRunForNow() }
+                }
             }
         )
         AppNav(nav: nav)

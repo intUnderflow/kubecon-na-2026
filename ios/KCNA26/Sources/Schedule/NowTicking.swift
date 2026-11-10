@@ -6,8 +6,9 @@ import SwiftUI
 // `.active` or `.inactive`), paused in the background and when the view goes away.
 
 /// Drives a ``NowTicker`` held in the caller's `@State` (created on first appearance with
-/// `clock`): resumes it (refreshing at once) when the view appears or its scene comes back from
-/// the background, pauses it when the view disappears or the scene goes to the background.
+/// `clock`): resumes it (refreshing at once) when the view appears or, while it is on screen,
+/// its scene comes back from the background; pauses it when the view disappears or the scene
+/// goes to the background.
 ///
 ///     @State private var ticker: NowTicker?
 ///     ...

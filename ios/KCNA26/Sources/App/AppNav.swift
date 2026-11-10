@@ -133,7 +133,11 @@ private struct ScheduleLayer: View {
             set: { newValue in
                 // Only a user dismissal (swipe down) reaches here; state-driven hiding (Directions
                 // pushed, the window turning wide) doesn't call it, and must not close the session.
-                if newValue == nil && !wide && nav.current == .schedule { nav.closeSession() }
+                // Main thread (SwiftUI); `assumeIsolated` compiles whether or not Binding's
+                // closures are `@Sendable` in the SDK.
+                MainActor.assumeIsolated {
+                    if newValue == nil && !wide && nav.current == .schedule { nav.closeSession() }
+                }
             }
         )
     }

@@ -645,6 +645,9 @@ private struct NorthRose: View {
             ctx.draw(n, in: CGRect(x: c.x - nSize.width / 2, y: c.y + 13 - baseline, width: nSize.width, height: nSize.height))
         }
         .frame(width: 34, height: 34)
+        // Decoration only: a pan or pinch starting on it still moves the map (Kotlin's rose has
+        // no pointer input, so its touches reach the map's gesture detector).
+        .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
 }
