@@ -65,7 +65,8 @@ theme, components, icons and the screens' entry points.
 ## Builds
 
 GitHub Actions (`.github/workflows/ios.yml`) runs the Core tests on macOS and Linux and builds the
-app for the simulator (Debug) and for devices (Release, unsigned) on every push that touches
-`ios/`. Publishing a GitHub release, or running the **iOS release** workflow
+app for the simulator (Debug) and for devices (Release, unsigned) on every push that changes
+something in `ios/` other than the bundled schedule data (`KCNA26/Resources/Data/`), so a data
+update starts no run. Publishing a GitHub release, or running the **iOS release** workflow
 (`.github/workflows/ios-release.yml`), attaches an unsigned `kubecon-na-2026.ipa` to the release;
 the main README explains how to install it.

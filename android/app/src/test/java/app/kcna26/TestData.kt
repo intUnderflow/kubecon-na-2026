@@ -4,6 +4,8 @@ import app.kcna26.data.Repository
 import app.kcna26.time.FixedClock
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import java.io.File
 
 /**
@@ -34,6 +36,17 @@ object TestData {
 
     /** Raw text of an asset file, e.g. `TestData.text("wayfinding.json")`. */
     fun text(name: String): String = File(assetsDir, name).readText()
+
+    /**
+     * How many sessions schedule.json holds, read from the file itself so the tests keep passing
+     * when a data update adds or removes sessions.
+     */
+    val scheduleCount: Int by lazy {
+        Repository.json.parseToJsonElement(text(Repository.SCHEDULE)).jsonObject.getValue("sessions").jsonArray.size
+    }
+
+    /** How many entries details.json holds (see [scheduleCount]). */
+    val detailsCount: Int by lazy { Repository.json.parseToJsonElement(text(Repository.DETAILS)).jsonObject.size }
 
     /** A clock frozen at an ISO time ("2026-11-11T09:00:00-07:00" or Denver local "2026-11-11T09:00"). */
     fun clockAt(iso: String): FixedClock = FixedClock.parse(iso)

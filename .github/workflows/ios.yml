@@ -1,14 +1,18 @@
-# Builds the iOS app and runs the iOS core tests on every push or pull request that touches it.
+# Builds the iOS app and runs the iOS core tests on every push or pull request that changes the
+# iOS app. A schedule data update only refreshes the bundled copy in ios/KCNA26/Resources/Data,
+# which is left out below, so it starts no run.
 name: iOS
 
 on:
   push:
     paths:
       - "ios/**"
+      - "!ios/KCNA26/Resources/Data/**"
       - ".github/workflows/ios.yml"
   pull_request:
     paths:
       - "ios/**"
+      - "!ios/KCNA26/Resources/Data/**"
       - ".github/workflows/ios.yml"
   workflow_dispatch:
 

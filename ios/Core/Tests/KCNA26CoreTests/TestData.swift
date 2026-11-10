@@ -84,6 +84,23 @@ enum TestData {
         }
     }
 
+    /// How many sessions schedule.json holds, read from the file itself so the tests keep passing
+    /// when a data update adds or removes sessions (Kotlin `TestData.scheduleCount`).
+    static let scheduleCount: Int = {
+        guard let sessions = json(Repository.SCHEDULE)["sessions"]?.arrayValue else {
+            fatalError("TestData.scheduleCount: schedule.json has no sessions array")
+        }
+        return sessions.count
+    }()
+
+    /// How many entries details.json holds (Kotlin `TestData.detailsCount`).
+    static let detailsCount: Int = {
+        guard let details = json(Repository.DETAILS).objectValue else {
+            fatalError("TestData.detailsCount: details.json is not an object")
+        }
+        return details.count
+    }()
+
     /// A clock frozen at an ISO time ("2026-11-11T09:00:00-07:00", Denver local
     /// "2026-11-11T09:00", or "…Z"). Traps on a malformed time (a test bug).
     static func clockAt(_ iso: String) -> FixedClock {

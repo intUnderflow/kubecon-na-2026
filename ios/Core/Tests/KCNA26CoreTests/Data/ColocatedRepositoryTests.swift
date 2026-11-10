@@ -50,7 +50,7 @@ final class ColocatedRepositoryTests: XCTestCase {
     }
 
     func testMergeCounts() throws {
-        XCTAssertEqual(614 + 223, repo.sessions.count)
+        XCTAssertEqual(TestData.scheduleCount + 223, repo.sessions.count)
         XCTAssertEqual(223, colo.count)
         XCTAssertEqual(212, colo.filter { $0.category == "colo" }.count) // talks
         XCTAssertEqual(10, colo.filter { $0.category == "log" }.count) // breaks
@@ -66,7 +66,7 @@ final class ColocatedRepositoryTests: XCTestCase {
         XCTAssertTrue(repo.extraRooms.values.allSatisfy { !$0.hasPosition })
         // Details: every co-located session is bundled.
         let details = try repo.details
-        XCTAssertEqual(561 + 223, details.count)
+        XCTAssertEqual(TestData.detailsCount + 223, details.count)
         XCTAssertTrue(colo.allSatisfy { details.containsKey($0.id) })
     }
 
@@ -79,7 +79,7 @@ final class ColocatedRepositoryTests: XCTestCase {
         let first = try XCTUnwrap(sessions[0].objectValue)
         let clash = JSONValue.object(first.with("id", .string("1289955"))) // a Project Lightning Talk
         let loaded = try loadWith(JSONValue.object(root.with("sessions", .array([clash] + sessions.dropFirst()))).compactString)
-        XCTAssertEqual(837 - 1, loaded.sessions.count)
+        XCTAssertEqual(TestData.scheduleCount + 223 - 1, loaded.sessions.count)
         XCTAssertEqual(loaded.sessions.count, loaded.sessionsById.count)
         XCTAssertEqual("kubecon", try XCTUnwrap(loaded.session("1289955")).event)
     }
@@ -198,16 +198,16 @@ final class ColocatedRepositoryTests: XCTestCase {
         }
         XCTAssertFalse(opened.value.contains(Repository.COLOCATED_DETAILS))
         XCTAssertFalse(opened.value.contains(Repository.DETAILS))
-        XCTAssertEqual(614 + 223, r.sessions.count)
-        XCTAssertEqual(561 + 223, try r.details.count)
+        XCTAssertEqual(TestData.scheduleCount + 223, r.sessions.count)
+        XCTAssertEqual(TestData.detailsCount + 223, try r.details.count)
         XCTAssertTrue(opened.value.contains(Repository.COLOCATED_DETAILS))
         XCTAssertEqual(1, opened.value.filter { $0 == Repository.COLOCATED }.count)
         // Without it (or unreadable), the co-located sessions still load; they just have no descriptions.
         for text in [nil, "{ not json"] as [String?] {
             let bare = try loadWith(TestData.text(Repository.COLOCATED), details: text)
-            XCTAssertEqual(614 + 223, bare.sessions.count)
+            XCTAssertEqual(TestData.scheduleCount + 223, bare.sessions.count)
             XCTAssertEqual(11, bare.coloEvents.count)
-            XCTAssertEqual(561, try bare.details.count)
+            XCTAssertEqual(TestData.detailsCount, try bare.details.count)
             XCTAssertNil(try bare.details["1245135"])
         }
     }
@@ -219,11 +219,11 @@ final class ColocatedRepositoryTests: XCTestCase {
         XCTAssertEqual(Self.colocatedJsonFailures(), [nil, "{ not json", badDate])
         for text in [nil, "{ not json", badDate] as [String?] {
             let r = try loadWith(text)
-            XCTAssertEqual(614, r.sessions.count)
+            XCTAssertEqual(TestData.scheduleCount, r.sessions.count)
             XCTAssertTrue(r.coloEvents.isEmpty)
             XCTAssertTrue(r.supersededIds.isEmpty)
             XCTAssertTrue(r.extraRooms.isEmpty)
-            XCTAssertEqual(561, try r.details.count)
+            XCTAssertEqual(TestData.detailsCount, try r.details.count)
             XCTAssertFalse(r.anthropicSpeakers.contains("Jiazhou Gao"))
             // HAND-OFF (CONVENTIONS.md, Tests): the Kotlin test also checks Monday's
             // ScheduleIndex(r).dayView("mon", 2026-11-09T08:00-07:00, "Lucy Sweet") for each of

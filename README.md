@@ -117,7 +117,7 @@ You need a Mac with Xcode 16 or later.
 
 The app's logic (data, schedule rules, routing, sync, reminders) is a Swift package that builds and tests on macOS and Linux: `cd ios/Core && swift test`. See [ios/README.md](ios/README.md) for how the iOS app is organised. A fork can point the app at its own data with the `KCNA26_DATA_BASE_URL` build setting.
 
-Every push that touches `ios/` is built and tested by GitHub Actions. Publishing a release (or running the **iOS release** workflow by hand) attaches `kubecon-na-2026.ipa` to it.
+Every push that changes the iOS app (anything in `ios/` except the bundled schedule data) is built and tested by GitHub Actions. Publishing a release (or running the **iOS release** workflow by hand) attaches `kubecon-na-2026.ipa` to it.
 
 ## Credits
 

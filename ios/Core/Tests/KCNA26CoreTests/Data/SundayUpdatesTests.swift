@@ -87,7 +87,7 @@ final class SundayUpdatesTests: XCTestCase {
             XCTAssertFalse(isMine(s, repo.defaultMe))
             XCTAssertFalse(repo.hasAnthropic(s, repo.defaultMe))
         }
-        XCTAssertEqual(614, repo.sessions.count { !$0.isColocated }) // schedule.json; colocated.json's follow
+        XCTAssertEqual(TestData.scheduleCount, repo.sessions.count { !$0.isColocated }) // schedule.json; colocated.json's follow
         let placeholder = KRegex("Unconference Session \\d+")
         XCTAssertTrue(!repo.sessions.contains { placeholder.matches($0.title) })
     }
@@ -130,7 +130,7 @@ final class SundayUpdatesTests: XCTestCase {
             opened.withLock { $0.append(name) }
             return try Data(contentsOf: dir.appendingPathComponent(name))
         }
-        XCTAssertEqual(614, loaded.sessions.count { !$0.isColocated })
+        XCTAssertEqual(TestData.scheduleCount, loaded.sessions.count { !$0.isColocated })
         XCTAssertFalse(opened.value.contains("unconference.json"), "\(opened.value)")
     }
 
