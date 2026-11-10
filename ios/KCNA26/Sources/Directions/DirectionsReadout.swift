@@ -223,7 +223,7 @@ private struct FigureEight: View {
                 var phone = ctx
                 phone.translateBy(x: p.x, y: p.y)
                 phone.rotate(by: .degrees(deg))
-                phone.fill(Path(roundedRect: CGRect(x: -3, y: -5, width: 6, height: 10), cornerRadius: 1.5), with: .color(ink))
+                phone.fill(Path(roundedRect: CGRect(x: -3, y: -5, width: 6, height: 10), cornerRadius: 1.5, style: .circular), with: .color(ink))
             }
         }
         .accessibilityHidden(true)

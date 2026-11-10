@@ -156,7 +156,7 @@ struct VenueMap: View {
         _ dest: MapOffset,
         _ me: MapOffset?
     ) -> some Gesture {
-        let drag = DragGesture(minimumDistance: 8, coordinateSpace: .local)
+        let drag = DragGesture(minimumDistance: 8)
             .onChanged { v in
                 let previous: DragTrack? = tracks.drag.flatMap { $0.start == v.startLocation ? $0 : nil }
                 tracks.drag = DragTrack(start: v.startLocation, translation: v.translation, location: v.location)
@@ -534,10 +534,10 @@ private func drawMapDestination(
     let left: CGFloat = onLeft ? c.x - gap - pillW : c.x + gap
     let top: CGFloat = c.y - pillH / 2
     ctx.fill(
-        Path(roundedRect: CGRect(x: left - 1.5, y: top - 1.5, width: pillW + 3, height: pillH + 3), cornerRadius: 7.5),
+        Path(roundedRect: CGRect(x: left - 1.5, y: top - 1.5, width: pillW + 3, height: pillH + 3), cornerRadius: 7.5, style: .circular),
         with: .color(colors.surface)
     )
-    ctx.fill(Path(roundedRect: CGRect(x: left, y: top, width: pillW, height: pillH), cornerRadius: 6), with: .color(colors.you))
+    ctx.fill(Path(roundedRect: CGRect(x: left, y: top, width: pillW, height: pillH), cornerRadius: 6, style: .circular), with: .color(colors.you))
     ctx.draw(label, in: CGRect(x: left + padX, y: top + padY, width: labelSize.width, height: labelSize.height))
 }
 
