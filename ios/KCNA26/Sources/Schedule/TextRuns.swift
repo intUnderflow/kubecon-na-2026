@@ -21,6 +21,7 @@ extension AppColors {
 ///     runsText(ScheduleHeaderLogic.dayStatusLine(st), style: type.status, colors: colors)
 ///         .appTextStyle(type.status)
 ///         .foregroundStyle(colors.muted)
+@MainActor
 func runsText(_ runs: [TextRun], style: AppTextStyle, colors: AppColors) -> Text {
     let boldFont: Font = style.bold.font
     var line = Text(verbatim: "")

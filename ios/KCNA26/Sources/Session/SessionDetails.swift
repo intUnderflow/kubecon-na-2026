@@ -1,14 +1,14 @@
 import SwiftUI
 
-// STUB (shell): replaced by the session agent. Keep this signature.
-
 /// Kotlin ui/session/SessionSheet.kt `SessionDetails`: the session details content, the
 /// right-hand pane on wide windows (the shell gives it the pane's size and its `surface`
 /// background, keyed by `sessionId`). Scrolls on its own; the Directions button stays pinned at
-/// the bottom.
+/// the bottom, within thumb reach. The content is ``SessionDetailsContent`` (shared with the
+/// compact ``SessionSheet``): 24 pt side padding on wide windows, 20 pt above.
 ///
 /// - Parameters:
-///   - sessionId: the session to show (the shell only passes ids the data has).
+///   - sessionId: the session to show (the shell only passes ids the data has; one that a live
+///     update removed shows "This session is no longer in the schedule.").
 ///   - onDirections: open Directions for this session.
 ///   - contentPadding: extra padding inside the scroll (Kotlin: the window insets; on iOS the
 ///     safe area already reaches the scroll view, so the shell passes none).
@@ -18,8 +18,6 @@ struct SessionDetails: View {
     let onDirections: (String) -> Void
     let contentPadding: EdgeInsets
     let onClose: (() -> Void)?
-
-    @Environment(AppGraph.self) private var graph
 
     init(
         sessionId: String,
@@ -34,24 +32,13 @@ struct SessionDetails: View {
     }
 
     var body: some View {
-        let title: String = graph.repository.session(sessionId)?.title ?? sessionId
-        VStack(spacing: 16) {
-            Text(verbatim: title)
-            Button {
-                onDirections(sessionId)
-            } label: {
-                Text(verbatim: "Directions")
-            }
-            if let onClose {
-                Button {
-                    onClose()
-                } label: {
-                    Text(verbatim: "Close")
-                }
-            }
-        }
-        .padding()
-        .padding(contentPadding)
+        SessionDetailsContent(
+            sessionId: sessionId,
+            onDirections: onDirections,
+            contentPadding: contentPadding,
+            onClose: onClose,
+            inSheet: false
+        )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

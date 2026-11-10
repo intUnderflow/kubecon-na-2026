@@ -57,7 +57,7 @@ struct ScheduleScreen: View {
     @FocusState private var searchFocused: Bool
 
     /// The list's scroll view, as the coordinate space the co-located card rows measure their top in.
-    fileprivate static let listSpace: NamedCoordinateSpace = NamedCoordinateSpace.named("schedule.list")
+    fileprivate static var listSpace: NamedCoordinateSpace { NamedCoordinateSpace.named("schedule.list") }
 
     init(
         selectedSessionId: String?,
@@ -392,12 +392,18 @@ struct ScheduleScreen: View {
         }
     }
 
-    /// A kid row being revealed after a jump scrolls itself into view (Kotlin `bringIntoView`).
+    /// A kid row being revealed after a jump scrolls itself into view (Kotlin `bringIntoView`),
+    /// then the reveal ends (Kotlin `onRevealed`, once the scroll is done).
     private func revealed(_ proxy: ScrollViewProxy, _ id: String) {
         withAnimation(.easeInOut(duration: 0.3)) {
             proxy.scrollTo(kidRowScrollId(id), anchor: nil)
         }
-        revealId = nil
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            if revealId == id {
+                revealId = nil
+            }
+        }
     }
 
     // MARK: - Banner jumps

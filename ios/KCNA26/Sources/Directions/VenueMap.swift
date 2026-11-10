@@ -146,9 +146,12 @@ struct VenueMap: View {
 
     /// SwiftUI reports totals since a gesture began; `MapCameraState.onGesture` wants per-step
     /// values like Compose's `detectTransformGestures` (`pan` = Δtranslation, `zoom` =
-    /// magnification / last magnification, `centroid` = the fingers' centre now). The first drag
-    /// event only starts tracking: Compose drops the touch-slop movement too, and a tap never
-    /// switches the camera to manual.
+    /// magnification / last magnification, `centroid` = where the fingers are).
+    /// - The first drag event only starts tracking: Compose drops the touch-slop movement too, so
+    ///   a tap never switches the camera to manual.
+    /// - While a pinch runs, it zooms around the point where it began, and the drag does not pan
+    ///   (`MagnifyGesture` gives no current centre, and a drag may follow one finger only, which
+    ///   would make a pinch drift). A two-finger pan that doesn't spread still pans.
     private func transformGesture(
         _ w: Double,
         _ h: Double,
@@ -156,11 +159,12 @@ struct VenueMap: View {
         _ dest: MapOffset,
         _ me: MapOffset?
     ) -> some Gesture {
+        let tracks = self.tracks
         let drag = DragGesture(minimumDistance: 8)
             .onChanged { v in
                 let previous: DragTrack? = tracks.drag.flatMap { $0.start == v.startLocation ? $0 : nil }
-                tracks.drag = DragTrack(start: v.startLocation, translation: v.translation, location: v.location)
-                guard let previous else { return }
+                tracks.drag = DragTrack(start: v.startLocation, translation: v.translation)
+                guard let previous, tracks.pinch == nil else { return }
                 let dx: Double = Double(v.translation.width - previous.translation.width)
                 let dy: Double = Double(v.translation.height - previous.translation.height)
                 if dx == 0 && dy == 0 { return }
@@ -173,15 +177,12 @@ struct VenueMap: View {
         let pinch = MagnifyGesture(minimumScaleDelta: 0.01)
             .onChanged { v in
                 let previous: PinchTrack? = tracks.pinch.flatMap { $0.start == v.startLocation ? $0 : nil }
-                let dragNow: CGSize = tracks.drag?.translation ?? .zero
-                let dragAtStart: CGSize = previous?.dragAtStart ?? dragNow
-                tracks.pinch = PinchTrack(start: v.startLocation, magnification: v.magnification, dragAtStart: dragAtStart)
+                tracks.pinch = PinchTrack(start: v.startLocation, magnification: v.magnification)
                 let last: CGFloat = previous?.magnification ?? 1
-                guard last > 0 else { return }
+                guard last > 0, v.magnification > 0 else { return }
                 let zoom: Double = Double(v.magnification / last)
-                let cx: Double = Double(v.startLocation.x + dragNow.width - dragAtStart.width)
-                let cy: Double = Double(v.startLocation.y + dragNow.height - dragAtStart.height)
-                camera.onGesture(w, h, MapOffset(cx, cy), MapOffset.zero, zoom, route, dest, me)
+                let centroid = MapOffset(Double(v.startLocation.x), Double(v.startLocation.y))
+                camera.onGesture(w, h, centroid, MapOffset.zero, zoom, route, dest, me)
             }
             .onEnded { _ in
                 tracks.pinch = nil
@@ -190,20 +191,17 @@ struct VenueMap: View {
     }
 }
 
-/// One drag gesture's last translation and location (`start` tells gestures apart, so a
-/// cancelled one that never ended can't leak into the next).
+/// One drag gesture's last translation (`start` tells gestures apart, so a cancelled one that
+/// never ended can't leak into the next).
 private struct DragTrack: Equatable {
     let start: CGPoint
     let translation: CGSize
-    let location: CGPoint
 }
 
-/// One pinch's last magnification, and the drag translation when it began (the fingers' centre
-/// moves with the drag).
+/// One pinch's last magnification (`start` as for ``DragTrack``).
 private struct PinchTrack: Equatable {
     let start: CGPoint
     let magnification: CGFloat
-    let dragAtStart: CGSize
 }
 
 /// The map's gesture tracking, kept out of SwiftUI's state so a gesture step re-renders only
