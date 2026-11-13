@@ -1,0 +1,20 @@
+{
+ "_about": "Parties and get-togethers around the conference that are not on the conferenceparties.com list, each checked on the host's own page. scripts/fetch_parties.py merges them into the schedule. Fields: day and date; start and end as 24-hour local times (end may be left out when none is published); name; hosts; link (the host's page); access (the note shown, such as \"Invite needed\" or \"Open to all\"); about (an optional sentence for the description); then either venue and address for somewhere off-site, or room (a rooms.json code) and where (a few words) for somewhere inside the conference venue. \"days\" may name days after the conference; one is added to the schedule only while it has a party.",
+ "checked": "Nov 12, 2026 at 5:05 PM MST",
+ "days": [],
+ "parties": [
+  {
+   "day": "thu",
+   "date": "2026-11-12",
+   "start": "16:15",
+   "end": "18:15",
+   "name": "Casual Inference",
+   "hosts": "Rahul Parundekar & Superlinked",
+   "link": "https://luma.com/6imrvsiy",
+   "access": "Open to all",
+   "about": "A no-agenda hangout after a week of talking about AI infrastructure. Drop by whenever, from 4:15 PM.",
+   "room": "HL",
+   "where": "the Contribution Bar beside the Hyatt Regency lobby"
+  }
+ ]
+}

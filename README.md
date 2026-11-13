@@ -56,7 +56,7 @@ With a free Apple ID the app has to be re-signed every 7 days (AltStore can refr
 - **My talks.** Pick your name under "I'm speaking as" (the app asks on first launch; the default is None). Your talks get a banner, a highlight and a mark on the day tab, plus reminders 30 and 10 minutes before.
 - **RSVP.** Tap the star on the sessions you plan to attend. You get a reminder before each one (Off, 5, 10 or 15 minutes; 10 by default), an "Up next" row for today, a note when two RSVP’d sessions clash, and an RSVP’d filter that shows only those sessions and your own talks. RSVPs stay on your device; they don’t register you with the organisers.
 - **Co-located events.** Monday's CNCF-hosted co-located events are cards showing what's on now and next, each with its full agenda.
-- **Evening parties.** Tuesday's and Wednesday's parties, happy hours and dinners around the conference are in the schedule as Social sessions, each with its venue, hosts and a link to the host's page for an invite. They come from the unofficial list at [conferenceparties.com/kubecon26](https://conferenceparties.com/kubecon26/), not from the official agenda.
+- **Evening parties.** The week's parties, happy hours and dinners around the conference are in the schedule as Social sessions, each with its venue, hosts and a link to the host's page. They come from the unofficial list at [conferenceparties.com/kubecon26](https://conferenceparties.com/kubecon26/) and from hosts' own pages, not from the official agenda.
 - **Session details.** Full description, speakers and their taglines, room, time and a link to the official page.
 - **Indoor directions.** A venue map with your position and step-by-step walking directions between rooms and entrances, with reminders when the route changes floor. The "From" list puts the nearest places first.
 - **Offline, with live data updates.** All data ships inside the app. When online, it checks this repository for newer schedule data and switches to it once the download has passed its checks.
@@ -79,7 +79,7 @@ Installed apps pick up new data from the `main` branch of this repository: on st
 1. `python3 -I scripts/fetch_details.py` refreshes session descriptions (`data/details.json`).
 2. `python3 -I scripts/fetch_colocated.py` refreshes the co-located events (`data/colocated.json`, `data/colocated_details.json`).
 3. `python3 -I scripts/apply_updates.py <updates file>` applies a day's schedule changes to `data/schedule.json`. If you keep the updates file in `data/updates/`, strip personal fields (such as `youUpvoted`) first.
-4. `python3 -I scripts/fetch_parties.py` refreshes the evening parties (sessions whose ids start `party-`, and their venues in `data/rooms.json`).
+4. `python3 -I scripts/fetch_parties.py` refreshes the evening parties (sessions whose ids start `party-`, and their venues in `data/rooms.json`). Parties found elsewhere go in `data/updates/parties-extra.json`, which the script merges in.
 5. `python3 -I scripts/make_manifest.py --sync-assets` bumps the version in `data/manifest.json` and copies the data into both apps (`android/app/src/main/assets/` and `ios/KCNA26/Resources/Data/`).
 6. Run the tests (`cd android && ./gradlew testDebugUnitTest`, and `cd ios/Core && swift test`), then commit and push.
 

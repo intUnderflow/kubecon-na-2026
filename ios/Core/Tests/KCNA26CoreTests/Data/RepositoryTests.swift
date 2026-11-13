@@ -55,24 +55,26 @@ final class RepositoryTests: XCTestCase {
 
     func testPartiesAreOffSiteSocialSessions() throws {
         // The evening parties (scripts/fetch_parties.py) ride on things the released apps already
-        // show: a "soc" session in a room without a position, with the host's page as its link.
+        // show: a "soc" session with the host's page as its link, either off-site at a PARTY-* venue
+        // without a position or in one of the conference's own rooms.
         let parties = repo.sessions.filter { $0.id.hasPrefix(TestData.PARTY_ID_PREFIX) }
         let details = try repo.details
         for s in parties {
             XCTAssertEqual("soc", s.category, s.id)
             XCTAssertEqual("kubecon", s.event, s.id)
-            XCTAssertTrue(s.room.hasPrefix(TestData.PARTY_ROOM_PREFIX), s.id)
-            XCTAssertEqual(false, repo.room(s.room)?.hasPosition, s.id)
+            let room = repo.room(s.room)
+            XCTAssertNotNil(room, s.id)
+            if s.room.hasPrefix(TestData.PARTY_ROOM_PREFIX) { XCTAssertEqual(false, room?.hasPosition, s.id) }
             XCTAssertTrue(s.officialUrl.hasPrefix("https://"), s.id)
             XCTAssertTrue(s.speakers.isEmpty, s.id)
             XCTAssertFalse((s.note ?? "").isEmpty, s.id)
-            XCTAssertTrue((s.end ?? s.start) > s.start, s.id)
-            XCTAssertTrue((details[s.id]?.description ?? "").contains("conferenceparties.com"), s.id)
+            XCTAssertTrue(s.end.map { $0 > s.start } ?? true, s.id) // nil: nobody published an end time
+            XCTAssertTrue((details[s.id]?.description ?? "").hasPrefix("Hosted by "), s.id)
         }
         // Every party venue is used, and nothing else is in one.
         XCTAssertEqual(
             Set(repo.rooms.keys.filter { $0.hasPrefix(TestData.PARTY_ROOM_PREFIX) }),
-            Set(parties.map { $0.room })
+            Set(parties.map { $0.room }.filter { $0.hasPrefix(TestData.PARTY_ROOM_PREFIX) })
         )
     }
 

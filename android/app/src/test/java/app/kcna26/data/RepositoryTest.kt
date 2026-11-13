@@ -68,23 +68,25 @@ class RepositoryTest {
     @Test
     fun partiesAreOffSiteSocialSessions() {
         // The evening parties (scripts/fetch_parties.py) ride on things the released apps already
-        // show: a "soc" session in a room without a position, with the host's page as its link.
+        // show: a "soc" session with the host's page as its link, either off-site at a PARTY-* venue
+        // without a position or in one of the conference's own rooms.
         val parties = repo.sessions.filter { it.id.startsWith(TestData.PARTY_ID_PREFIX) }
         for (s in parties) {
             assertEquals(s.id, "soc", s.category)
             assertEquals(s.id, "kubecon", s.event)
-            assertTrue(s.id, s.room.startsWith(TestData.PARTY_ROOM_PREFIX))
-            assertEquals(s.id, false, repo.room(s.room)?.hasPosition)
+            val room = repo.room(s.room)
+            assertTrue(s.id, room != null)
+            if (s.room.startsWith(TestData.PARTY_ROOM_PREFIX)) assertEquals(s.id, false, room?.hasPosition)
             assertTrue(s.id, s.officialUrl.startsWith("https://"))
             assertTrue(s.id, s.speakers.isEmpty())
             assertFalse(s.id, s.note.isNullOrEmpty())
-            assertTrue(s.id, (s.end ?: s.start) > s.start)
-            assertTrue(s.id, (repo.details[s.id]?.description ?: "").contains("conferenceparties.com"))
+            assertTrue(s.id, s.end?.let { it > s.start } ?: true) // null: nobody published an end time
+            assertTrue(s.id, (repo.details[s.id]?.description ?: "").startsWith("Hosted by "))
         }
         // Every party venue is used, and nothing else is in one.
         assertEquals(
             repo.rooms.keys.filter { it.startsWith(TestData.PARTY_ROOM_PREFIX) }.toSet(),
-            parties.map { it.room }.toSet(),
+            parties.map { it.room }.filter { it.startsWith(TestData.PARTY_ROOM_PREFIX) }.toSet(),
         )
     }
 
